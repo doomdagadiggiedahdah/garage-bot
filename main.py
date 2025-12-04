@@ -6,15 +6,15 @@ import json
 from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 # ============ CONFIGURATION ============
-SENSOR_PIN = 34  # GPIO pin for door sensor
+SENSOR_PIN = 32  # GPIO pin for door sensor
 
 # Alert timing (can be adjusted)
-INITIAL_ALERT_MINUTES = .05   # First alert after door open for X minutes
+INITIAL_ALERT_MINUTES = 15   # First alert after door open for X minutes
 REPEAT_ALERT_MINUTES = 5    # Then repeat alert every X minutes
 
 # ============ SETUP ============
-sensor = machine.ADC(machine.Pin(SENSOR_PIN))
-sensor.atten(machine.ADC.ATTN_11DB)
+# Use digital input with internal pull-up instead of ADC
+sensor = machine.Pin(SENSOR_PIN, machine.Pin.IN, machine.Pin.PULL_UP)
 
 # ============ WIFI ============
 def connect_wifi():
@@ -60,9 +60,8 @@ def send_telegram_message(message):
 
 # ============ DOOR MONITORING ============
 def is_door_open():
-    # Sensor reads LOW when open (magnet away), HIGH when closed (magnet near)
-    reading = sensor.read()
-    return reading < 1000  # Adjust threshold if needed
+    # Pull-up means: 1 = open (switch open), 0 = closed (switch closed to GND)
+    return sensor.value() == 1
 
 def check_telegram_commands():
     """Check for incoming Telegram messages and return True if notifications should be disabled"""
@@ -144,7 +143,7 @@ def main():
             last_alert_time = None
             notifications_disabled = False
         
-        time.sleep(10)  # Check every 10 seconds
+        time.sleep(1)  # Check every 10 seconds
 
 if __name__ == "__main__":
     main()
