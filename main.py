@@ -4,11 +4,12 @@ import network
 import time
 import urequests
 import json
-from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC
+from umqtt.simple import MQTTClient
 
 # ============ CONFIGURATION ============
 SENSOR_PIN = 32      # GPIO pin for door sensor (with internal pull-up)
-RELAY_PIN = 27       # GPIO pin for relay control
+RELAY_PIN = 14       # GPIO pin for relay control
 
 # Alert timing
 INITIAL_ALERT_MINUTES = 15   # First alert after door open for X minutes
@@ -17,6 +18,39 @@ REPEAT_ALERT_MINUTES = 5     # Then repeat alert every X minutes
 # Telegram polling
 POLL_INTERVAL_SECONDS = 2    # How often to check for new commands
 LAST_UPDATE_ID = 0           # Track which messages we've already processed
+
+# ============ MQTT ============
+mqtt_client = None
+
+def connect_mqtt():
+    """Connect to MQTT broker"""
+    global mqtt_client
+    try:
+        mqtt_client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, MQTT_PORT)
+        mqtt_client.connect()
+        print("Connected to MQTT broker")
+        return True
+    except Exception as e:
+        print(f"MQTT connection failed: {e}")
+        mqtt_client = None
+        return False
+
+def publish_log(message):
+    """Send a log message via MQTT"""
+    global mqtt_client
+    if mqtt_client is None:
+        return
+    try:
+        mqtt_client.publish(MQTT_LOG_TOPIC, message)
+    except Exception as e:
+        print(f"MQTT publish failed: {e}")
+        mqtt_client = None  # Mark as disconnected
+
+def ensure_mqtt():
+    """Reconnect MQTT if disconnected"""
+    global mqtt_client
+    if mqtt_client is None:
+        connect_mqtt()
 
 # ============ SETUP ============
 sensor = Pin(SENSOR_PIN, Pin.IN, Pin.PULL_UP)
@@ -112,6 +146,10 @@ def handle_command(message_text):
     """Process incoming commands and return response"""
     cmd = message_text.lower().strip()
     
+    # Remove bot mention if present (e.g., "/status@bush_garage_alert_bot" -> "/status")
+    if "@" in cmd:
+        cmd = cmd.split("@")[0]
+    
     if cmd in ["help", "/help", "?"]:
         return """Garage Door Bot Commands:
 
@@ -161,6 +199,8 @@ def main():
         return
     
     # Send startup message
+    startup_msg = "Garage door bot is online!"
+    publish_log(startup_msg)
     send_telegram_message("Garage door bot is online!\n\nType 'help' for commands.")
     
     # Door monitoring state
@@ -180,6 +220,9 @@ def main():
         if not ensure_wifi():
             time.sleep(5)
             continue
+        
+        # Ensure MQTT is connected
+        ensure_mqtt()
         
         # -------- Poll Telegram for commands --------
         if current_time - last_poll_time >= POLL_INTERVAL_SECONDS:
@@ -215,6 +258,7 @@ def main():
                 open_start_time = current_time
                 last_alert_time = None
                 notifications_muted = False
+                publish_log("Door opened")
                 print("Door opened")
             else:
                 # Door has been open, check if we need to alert
@@ -234,6 +278,7 @@ def main():
                 if should_alert and not notifications_muted:
                     message = f"ALERT: Garage door has been open for {int(elapsed_minutes)} minutes!"
                     print(f"Sending alert: {message}")
+                    publish_log(message)
                     send_telegram_message(message)
                     last_alert_time = current_time
         
@@ -241,7 +286,9 @@ def main():
             # Door is closed
             if open_start_time is not None:
                 elapsed = (current_time - open_start_time) / 60
-                print(f"Door closed after {elapsed:.1f} minutes")
+                close_msg = f"Door closed after {elapsed:.1f} minutes"
+                print(close_msg)
+                publish_log(close_msg)
                 
                 # Notify that door closed (if it was open long enough to matter)
                 if elapsed >= 1:
@@ -255,4 +302,7 @@ def main():
         time.sleep(0.5)  # Small delay to prevent tight loop
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        publish_log(f"CRASH: {e}")
