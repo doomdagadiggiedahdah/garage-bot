@@ -70,12 +70,11 @@ def connect_wifi():
             if wlan.isconnected():
                 print("Connected!")
                 print("IP:", wlan.ifconfig()[0])
-                break
+                return True
             time.sleep(1)
         
-        if not wlan.isconnected():
-            print("Failed to connect to WiFi")
-            return False
+        # Failed to connect on this attempt
+        return False
     
     return True
 
@@ -194,9 +193,10 @@ def main():
     
     print("Starting garage door monitor...")
     
-    if not connect_wifi():
-        print("Cannot proceed without WiFi")
-        return
+    # Retry WiFi connection until successful
+    while not connect_wifi():
+        print("WiFi connection failed. Retrying in 5 seconds...")
+        time.sleep(5)
     
     # Send startup message
     startup_msg = "Garage door bot is online!"
