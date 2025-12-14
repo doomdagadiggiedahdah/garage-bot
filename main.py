@@ -1,53 +1,76 @@
 import machine
-from machine import Pin
+from machine import Pin, WDT
 import network
 import time
 import urequests
 import json
+import gc
+import sys
+import socket
 from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC
 from umqtt.simple import MQTTClient
 
 # ============ CONFIGURATION ============
-SENSOR_PIN = 32      # GPIO pin for door sensor (with internal pull-up)
-RELAY_PIN = 14       # GPIO pin for relay control
+SENSOR_PIN = 32
+RELAY_PIN = 14
+INITIAL_ALERT_MINUTES = 15
+REPEAT_ALERT_MINUTES = 5
+POLL_INTERVAL_SECONDS = 2
+LAST_UPDATE_ID = 0
 
-# Alert timing
-INITIAL_ALERT_MINUTES = 15   # First alert after door open for X minutes
-REPEAT_ALERT_MINUTES = 5     # Then repeat alert every X minutes
+# NEW: Heartbeat interval (prints status even when idle)
+HEARTBEAT_INTERVAL_SECONDS = 60  # Print status every minute
 
-# Telegram polling
-POLL_INTERVAL_SECONDS = 2    # How often to check for new commands
-LAST_UPDATE_ID = 0           # Track which messages we've already processed
+# NEW: Enable hardware watchdog (resets ESP32 if code hangs)
+ENABLE_WATCHDOG = True
+WATCHDOG_TIMEOUT_MS = 120000  # 2 minutes
+
+# ============ GLOBALS ============
+mqtt_client = None
+wdt = None
+boot_time = None
+loop_count = 0
+
+# ============ LOGGING ============
+def log(message, level="INFO"):
+    """Unified logging with timestamp and memory info"""
+    free_mem = gc.mem_free()
+    timestamp = time.ticks_ms() // 1000
+    uptime = timestamp - (boot_time or timestamp)
+    log_line = f"[{uptime:>6}s] [{level:>5}] [mem:{free_mem:>6}] {message}"
+    print(log_line)
+    
+    # Also try MQTT for remote logging
+    if level in ["ERROR", "WARN"] and mqtt_client:
+        try:
+            mqtt_client.publish(MQTT_LOG_TOPIC, log_line)
+        except:
+            pass
+
+def log_exception(e, context=""):
+    """Log exception with full traceback"""
+    import io
+    buf = io.StringIO()
+    sys.print_exception(e, buf)
+    trace = buf.getvalue()
+    log(f"EXCEPTION in {context}:\n{trace}", "ERROR")
 
 # ============ MQTT ============
-mqtt_client = None
-
 def connect_mqtt():
-    """Connect to MQTT broker"""
     global mqtt_client
     try:
+        if wdt:
+            wdt.feed()
         mqtt_client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, MQTT_PORT)
         mqtt_client.connect()
-        print("Connected to MQTT broker")
+        log("MQTT connected")
         return True
     except Exception as e:
-        print(f"MQTT connection failed: {e}")
+        log_exception(e, "connect_mqtt")
         mqtt_client = None
         return False
 
-def publish_log(message):
-    """Send a log message via MQTT"""
-    global mqtt_client
-    if mqtt_client is None:
-        return
-    try:
-        mqtt_client.publish(MQTT_LOG_TOPIC, message)
-    except Exception as e:
-        print(f"MQTT publish failed: {e}")
-        mqtt_client = None  # Mark as disconnected
-
 def ensure_mqtt():
-    """Reconnect MQTT if disconnected"""
     global mqtt_client
     if mqtt_client is None:
         connect_mqtt()
@@ -55,7 +78,7 @@ def ensure_mqtt():
 # ============ SETUP ============
 sensor = Pin(SENSOR_PIN, Pin.IN, Pin.PULL_UP)
 relay = Pin(RELAY_PIN, Pin.OUT)
-relay.value(0)  # Make sure relay starts off
+relay.value(0)
 
 # ============ WIFI ============
 def connect_wifi():
@@ -63,91 +86,102 @@ def connect_wifi():
     wlan.active(True)
     
     if not wlan.isconnected():
-        print("Connecting to WiFi...")
+        log("Connecting to WiFi...")
         wlan.connect(SSID, PASSWORD)
         
         for i in range(30):
             if wlan.isconnected():
-                print("Connected!")
-                print("IP:", wlan.ifconfig()[0])
+                log(f"WiFi connected! IP: {wlan.ifconfig()[0]}")
                 return True
             time.sleep(1)
+            if wdt:
+                wdt.feed()  # Don't let watchdog trigger during WiFi connect
         
-        # Failed to connect on this attempt
+        log("WiFi connection timeout", "WARN")
         return False
     
     return True
 
 def ensure_wifi():
-    """Reconnect WiFi if disconnected"""
     wlan = network.WLAN(network.STA_IF)
     if not wlan.isconnected():
-        print("WiFi disconnected, reconnecting...")
+        log("WiFi disconnected, reconnecting...", "WARN")
         return connect_wifi()
     return True
 
 # ============ TELEGRAM FUNCTIONS ============
 def send_telegram_message(message):
     try:
+        if wdt:
+            wdt.feed()  # Reset watchdog right before potentially slow operation
+        
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": message
-        }
-        response = urequests.post(url, json=data)
+        data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
+        response = urequests.post(url, json=data, timeout=10)  # 10 second timeout
         status = response.status_code
         response.close()
+        
+        # CRITICAL: Force garbage collection after HTTP request
+        gc.collect()
+        
+        log(f"Telegram send: {status}")
         return status == 200
+    except OSError as e:
+        log(f"Telegram timeout/network error: {e}", "WARN")
+        gc.collect()
+        return False
     except Exception as e:
-        print(f"Error sending Telegram message: {e}")
+        log_exception(e, "send_telegram_message")
+        gc.collect()
         return False
 
 def get_telegram_updates():
-    """Fetch new messages from Telegram"""
     global LAST_UPDATE_ID
     try:
-        # Use offset to only get new messages we haven't seen
+        if wdt:
+            wdt.feed()  # Reset watchdog right before potentially slow operation
+        
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=1"
-        response = urequests.get(url)
+        response = urequests.get(url, timeout=10)  # 10 second timeout
         data = response.json()
         response.close()
+        
+        # CRITICAL: Force garbage collection after HTTP request
+        gc.collect()
         
         if data.get("ok") and data.get("result"):
             return data["result"]
         return []
+    except OSError as e:
+        log(f"Telegram poll timeout: {e}", "WARN")
+        gc.collect()
+        return []
     except Exception as e:
-        print(f"Error getting Telegram updates: {e}")
+        log_exception(e, "get_telegram_updates")
+        gc.collect()
         return []
 
 # ============ DOOR FUNCTIONS ============
 def is_door_open():
-    """Check door sensor state"""
-    # Pull-up: 1 = open (switch open), 0 = closed (switch closed to GND)
     return sensor.value() == 1
 
 def get_door_status_text():
-    """Return human-readable door status"""
-    if is_door_open():
-        return "Door is OPEN"
-    else:
-        return "Door is CLOSED"
+    return "Door is OPEN" if is_door_open() else "Door is CLOSED"
 
 def press_garage_button():
-    """Simulate pressing the garage door button"""
-    print("Pressing garage button...")
+    log("Pressing garage button")
     relay.value(1)
     time.sleep(0.5)
     relay.value(0)
-    print("Button press complete")
+    log("Button press complete")
 
 # ============ COMMAND HANDLERS ============
 def handle_command(message_text):
-    """Process incoming commands and return response"""
     cmd = message_text.lower().strip()
-    
-    # Remove bot mention if present (e.g., "/status@bush_garage_alert_bot" -> "/status")
     if "@" in cmd:
         cmd = cmd.split("@")[0]
+    
+    log(f"Command received: {cmd}")
     
     if cmd in ["help", "/help", "?"]:
         return """Garage Door Bot Commands:
@@ -157,6 +191,7 @@ open - Open the door (if closed)
 close - Close the door (if open)
 press - Press the button (toggle door)
 silence - Mute alerts until door closes
+debug - Show system info
 help - Show this message"""
     
     elif cmd in ["status", "/status"]:
@@ -182,25 +217,48 @@ help - Show this message"""
         return f"Button pressed! Door was {current}."
     
     elif cmd in ["silence", "/silence", "quiet", "stop", "mute"]:
-        return "SILENCE"  # Special return value handled in main loop
+        return "SILENCE"
+    
+    # NEW: Debug command to check system health remotely
+    elif cmd in ["debug", "/debug", "info", "/info"]:
+        uptime = (time.ticks_ms() // 1000) - boot_time
+        return f"""System Info:
+Uptime: {uptime // 60}m {uptime % 60}s
+Free memory: {gc.mem_free()} bytes
+Loop count: {loop_count}
+Door: {'OPEN' if is_door_open() else 'CLOSED'}
+MQTT: {'connected' if mqtt_client else 'disconnected'}"""
     
     else:
-        return None  # Unknown command, ignore
+        return None
 
 # ============ MAIN LOOP ============
 def main():
-    global LAST_UPDATE_ID
+    global LAST_UPDATE_ID, wdt, boot_time, loop_count
     
-    print("Starting garage door monitor...")
+    boot_time = time.ticks_ms() // 1000
+    
+    log("="*40)
+    log("Garage door monitor starting")
+    log(f"Free memory at boot: {gc.mem_free()}")
+    log("="*40)
+    
+    # Initialize watchdog timer
+    if ENABLE_WATCHDOG:
+        log(f"Enabling watchdog timer ({WATCHDOG_TIMEOUT_MS}ms)")
+        wdt = WDT(timeout=WATCHDOG_TIMEOUT_MS)
     
     # Retry WiFi connection until successful
     while not connect_wifi():
-        print("WiFi connection failed. Retrying in 5 seconds...")
+        log("WiFi failed, retrying in 5s...", "WARN")
         time.sleep(5)
+        if wdt:
+            wdt.feed()
+    
+    # Connect MQTT
+    connect_mqtt()
     
     # Send startup message
-    startup_msg = "Garage door bot is online!"
-    publish_log(startup_msg)
     send_telegram_message("Garage door bot is online!\n\nType 'help' for commands.")
     
     # Door monitoring state
@@ -209,12 +267,19 @@ def main():
     notifications_muted = False
     
     # Timing
-    last_poll_time = time.ticks_ms() / 1000  # Initialize to current time
+    last_poll_time = time.ticks_ms() / 1000
+    last_heartbeat_time = time.ticks_ms() / 1000
+    last_door_state = is_door_open()
     
-    print("Entering main loop...")
+    log("Entering main loop")
     
     while True:
-        current_time = time.ticks_ms() / 1000  # Seconds
+        loop_count += 1
+        current_time = time.ticks_ms() / 1000
+        
+        # CRITICAL: Feed the watchdog
+        if wdt:
+            wdt.feed()
         
         # Ensure WiFi is connected
         if not ensure_wifi():
@@ -224,20 +289,28 @@ def main():
         # Ensure MQTT is connected
         ensure_mqtt()
         
+        # -------- Heartbeat (NEW) --------
+        if current_time - last_heartbeat_time >= HEARTBEAT_INTERVAL_SECONDS:
+            last_heartbeat_time = current_time
+            door_state = "OPEN" if is_door_open() else "CLOSED"
+            uptime_min = int((current_time - boot_time) / 60)
+            log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}")
+            
+            # Periodic garbage collection
+            gc.collect()
+        
         # -------- Poll Telegram for commands --------
         if current_time - last_poll_time >= POLL_INTERVAL_SECONDS:
             last_poll_time = current_time
             
             updates = get_telegram_updates()
             for update in updates:
-                # Update the offset so we don't process this message again
                 LAST_UPDATE_ID = update["update_id"]
                 
                 if "message" in update and "text" in update["message"]:
                     message_text = update["message"]["text"]
                     chat_id = update["message"]["chat"]["id"]
                     
-                    # Only respond to messages from our authorized chat
                     if str(chat_id) == str(TELEGRAM_CHAT_ID):
                         response = handle_command(message_text)
                         
@@ -247,29 +320,28 @@ def main():
                         elif response:
                             send_telegram_message(response)
                     else:
-                        print(f"Ignored message from unauthorized chat: {chat_id}")
+                        log(f"Unauthorized chat: {chat_id}", "WARN")
         
         # -------- Monitor door state --------
         door_open = is_door_open()
         
+        # Log state changes
+        if door_open != last_door_state:
+            log(f"Door state changed: {'OPEN' if door_open else 'CLOSED'}")
+            last_door_state = door_open
+        
         if door_open:
             if open_start_time is None:
-                # Door just opened
                 open_start_time = current_time
                 last_alert_time = None
                 notifications_muted = False
-                publish_log("Door opened")
-                print("Door opened")
+                log("Door opened - starting timer")
             else:
-                # Door has been open, check if we need to alert
                 elapsed_minutes = (current_time - open_start_time) / 60
                 
                 should_alert = False
-                
-                # First alert after INITIAL_ALERT_MINUTES
                 if last_alert_time is None and elapsed_minutes >= INITIAL_ALERT_MINUTES:
                     should_alert = True
-                # Repeat alerts every REPEAT_ALERT_MINUTES
                 elif last_alert_time is not None:
                     minutes_since_alert = (current_time - last_alert_time) / 60
                     if minutes_since_alert >= REPEAT_ALERT_MINUTES:
@@ -277,32 +349,54 @@ def main():
                 
                 if should_alert and not notifications_muted:
                     message = f"ALERT: Garage door has been open for {int(elapsed_minutes)} minutes!"
-                    print(f"Sending alert: {message}")
-                    publish_log(message)
+                    log(f"Sending alert: {message}")
                     send_telegram_message(message)
                     last_alert_time = current_time
         
         else:
-            # Door is closed
             if open_start_time is not None:
                 elapsed = (current_time - open_start_time) / 60
-                close_msg = f"Door closed after {elapsed:.1f} minutes"
-                print(close_msg)
-                publish_log(close_msg)
+                log(f"Door closed after {elapsed:.1f} minutes")
                 
-                # Notify that door closed (if it was open long enough to matter)
                 if elapsed >= 1:
                     send_telegram_message(f"Door closed after {elapsed:.1f} minutes.")
             
-            # Reset state
             open_start_time = None
             last_alert_time = None
             notifications_muted = False
         
-        time.sleep(0.5)  # Small delay to prevent tight loop
+        time.sleep(0.5)
 
+# ============ ENTRY POINT ============
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        publish_log(f"CRASH: {e}")
+        # Try to log the crash
+        log_exception(e, "MAIN")
+        
+        # Try to send crash notification
+        try:
+            gc.collect()
+            import io
+            buf = io.StringIO()
+            sys.print_exception(e, buf)
+            crash_msg = f"CRASH: {buf.getvalue()}"
+            
+            # Try MQTT first (faster)
+            if mqtt_client:
+                mqtt_client.publish(MQTT_CRASH_TOPIC, crash_msg)
+            
+            # Then try Telegram
+            send_telegram_message(f"🚨 CRASH:\n{buf.getvalue()[:500]}")
+        except:
+            pass
+        
+        # Print to serial for Pi logger
+        print("="*40)
+        print("FATAL CRASH - RESTARTING IN 5 SECONDS")
+        print("="*40)
+        sys.print_exception(e)
+        
+        time.sleep(5)
+        machine.reset()
