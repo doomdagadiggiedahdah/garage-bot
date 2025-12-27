@@ -23,7 +23,7 @@ HEARTBEAT_INTERVAL_SECONDS = 60  # Print status every minute
 
 # NEW: Enable hardware watchdog (resets ESP32 if code hangs)
 ENABLE_WATCHDOG = True
-WATCHDOG_TIMEOUT_MS = 120000  # 2 minutes
+WATCHDOG_TIMEOUT_MS = 300000  # 5 minutes
 
 # ============ GLOBALS ============
 mqtt_client = None
@@ -85,22 +85,50 @@ def connect_wifi():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     
-    if not wlan.isconnected():
-        log("Connecting to WiFi...")
-        wlan.connect(SSID, PASSWORD)
+    attempt = 0
+    while True:  # INFINITE RETRY
+        attempt += 1
         
-        for i in range(30):
-            if wlan.isconnected():
-                log(f"WiFi connected! IP: {wlan.ifconfig()[0]}")
-                return True
-            time.sleep(1)
+        # Check if already connected
+        if wlan.isconnected():
+            log(f"WiFi connected! IP: {wlan.ifconfig()[0]}")
+            return True
+        
+        # Clean up previous attempts
+        try:
+            wlan.disconnect()
+            time.sleep(2)
+        except:
+            pass
+        
+        log(f"WiFi attempt #{attempt}...")
+        
+        try:
+            wlan.config(txpower=20)
+            wlan.connect(SSID, PASSWORD)
+        except Exception as e:
+            log(f"Connect failed: {e}", "WARN")
+            time.sleep(10)
             if wdt:
-                wdt.feed()  # Don't let watchdog trigger during WiFi connect
+                wdt.feed()
+            continue
         
-        log("WiFi connection timeout", "WARN")
-        return False
-    
-    return True
+        # Wait up to 30 seconds for this attempt
+        for i in range(30):
+            if wdt:
+                wdt.feed()  # Keep watchdog happy
+            
+            if wlan.isconnected():
+                log(f"WiFi connected on attempt #{attempt}! IP: {wlan.ifconfig()[0]}")
+                return True
+            
+            time.sleep(1)
+        
+        # Failed, wait before retry
+        log(f"Attempt #{attempt} failed, retrying in 1s...", "WARN")
+        time.sleep(1)
+        if wdt:
+            wdt.feed()
 
 def ensure_wifi():
     wlan = network.WLAN(network.STA_IF)
@@ -249,11 +277,12 @@ def main():
         wdt = WDT(timeout=WATCHDOG_TIMEOUT_MS)
     
     # Retry WiFi connection until successful
-    while not connect_wifi():
-        log("WiFi failed, retrying in 5s...", "WARN")
-        time.sleep(5)
-        if wdt:
-            wdt.feed()
+#    while not connect_wifi():
+#        log("WiFi failed, retrying in 5s...", "WARN")
+#        if wdt:
+#            wdt.feed()
+#        time.sleep(5)
+    connect_wifi()
     
     # Connect MQTT
     connect_mqtt()
