@@ -16,14 +16,14 @@ SENSOR_PIN = 32
 RELAY_PIN = 14
 INITIAL_ALERT_MINUTES = 15
 REPEAT_ALERT_MINUTES = 5
-POLL_INTERVAL_SECONDS = 2
+POLL_INTERVAL_SECONDS = 5
 LAST_UPDATE_ID = 0
 
 # OTA Configuration
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.0.0"  # Bump this when you release new versions
+CURRENT_VERSION = "1.0.1"  # Bump this when you release new versions
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -258,6 +258,7 @@ def send_telegram_message(message):
         gc.collect()
         return False
 
+
 def get_telegram_updates():
     global LAST_UPDATE_ID
     try:
@@ -283,6 +284,7 @@ def get_telegram_updates():
         log_exception(e, "get_telegram_updates")
         gc.collect()
         return []
+
 
 # ============ DOOR FUNCTIONS ============
 def is_door_open():
