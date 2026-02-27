@@ -23,7 +23,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.0.1"  # Bump this when you release new versions
+CURRENT_VERSION = "1.0.2"  # Bump this when you release new versions
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -38,6 +38,7 @@ mqtt_client = None
 wdt = None
 boot_time = None
 loop_count = 0
+bot_triggered_close = False
 
 # ============ LOGGING ============
 def log(message, level="INFO"):
@@ -302,6 +303,7 @@ def press_garage_button():
 
 # ============ COMMAND HANDLERS ============
 def handle_command(message_text):
+    global bot_triggered_close
     cmd = message_text.lower().strip()
     if "@" in cmd:
         cmd = cmd.split("@")[0]
@@ -335,10 +337,13 @@ help - Show this message"""
         if not is_door_open():
             return "Door is already closed!"
         else:
+            bot_triggered_close = True
             press_garage_button()
             return "Closing door..."
-    
+
     elif cmd in ["press", "/press", "toggle", "/toggle"]:
+        if is_door_open():
+            bot_triggered_close = True
         press_garage_button()
         current = "open" if is_door_open() else "closed"
         return f"Button pressed! Door was {current}."
@@ -375,7 +380,7 @@ MQTT: {'connected' if mqtt_client else 'disconnected'}"""
 
 # ============ MAIN LOOP ============
 def main():
-    global LAST_UPDATE_ID, wdt, boot_time, loop_count
+    global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close
     
     boot_time = time.ticks_ms() // 1000
     
@@ -413,6 +418,7 @@ def main():
     open_start_time = None
     last_alert_time = None
     notifications_muted = False
+    bot_triggered_close = False
     
     # Timing
     last_poll_time = time.ticks_ms() / 1000
@@ -505,13 +511,14 @@ def main():
             if open_start_time is not None:
                 elapsed = (current_time - open_start_time) / 60
                 log(f"Door closed after {elapsed:.1f} minutes")
-                
-                if elapsed >= 1:
+
+                if elapsed >= 1 and bot_triggered_close:
                     send_telegram_message(f"Door closed after {elapsed:.1f} minutes.")
-            
+
             open_start_time = None
             last_alert_time = None
             notifications_muted = False
+            bot_triggered_close = False
         
         time.sleep(0.5)
 
