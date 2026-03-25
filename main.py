@@ -24,7 +24,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.0.2"  # Bump this when you release new versions
+CURRENT_VERSION = "1.0.3"  # Bump this when you release new versions
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
