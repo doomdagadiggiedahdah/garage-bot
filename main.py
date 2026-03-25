@@ -17,6 +17,7 @@ RELAY_PIN = 14
 INITIAL_ALERT_MINUTES = 15
 REPEAT_ALERT_MINUTES = 5
 POLL_INTERVAL_SECONDS = 5
+CLOSE_TIMEOUT_SECONDS = 60  # Alert if door doesn't close within this many seconds
 LAST_UPDATE_ID = 0
 
 # OTA Configuration
@@ -39,6 +40,8 @@ wdt = None
 boot_time = None
 loop_count = 0
 bot_triggered_close = False
+close_requested_time = None
+close_timeout_alerted = False
 
 # ============ LOGGING ============
 def log(message, level="INFO"):
@@ -303,7 +306,7 @@ def press_garage_button():
 
 # ============ COMMAND HANDLERS ============
 def handle_command(message_text):
-    global bot_triggered_close
+    global bot_triggered_close, close_requested_time, close_timeout_alerted
     cmd = message_text.lower().strip()
     if "@" in cmd:
         cmd = cmd.split("@")[0]
@@ -338,12 +341,16 @@ help - Show this message"""
             return "Door is already closed!"
         else:
             bot_triggered_close = True
+            close_requested_time = time.ticks_ms() / 1000
+            close_timeout_alerted = False
             press_garage_button()
             return "Closing door..."
 
     elif cmd in ["press", "/press", "toggle", "/toggle"]:
         if is_door_open():
             bot_triggered_close = True
+            close_requested_time = time.ticks_ms() / 1000
+            close_timeout_alerted = False
         press_garage_button()
         current = "open" if is_door_open() else "closed"
         return f"Button pressed! Door was {current}."
@@ -380,7 +387,7 @@ MQTT: {'connected' if mqtt_client else 'disconnected'}"""
 
 # ============ MAIN LOOP ============
 def main():
-    global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close
+    global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted
     
     boot_time = time.ticks_ms() // 1000
     
@@ -419,6 +426,8 @@ def main():
     last_alert_time = None
     notifications_muted = False
     bot_triggered_close = False
+    close_requested_time = None
+    close_timeout_alerted = False
     
     # Timing
     last_poll_time = time.ticks_ms() / 1000
@@ -506,7 +515,14 @@ def main():
                     log(f"Sending alert: {message}")
                     send_telegram_message(message)
                     last_alert_time = current_time
-        
+
+            # Check if a bot-triggered close timed out without the door closing
+            if bot_triggered_close and close_requested_time is not None and not close_timeout_alerted:
+                if current_time - close_requested_time >= CLOSE_TIMEOUT_SECONDS:
+                    log("Close timeout - door may be blocked", "WARN")
+                    send_telegram_message("WARNING: Door did not close! It may be blocked.")
+                    close_timeout_alerted = True
+
         else:
             if open_start_time is not None:
                 elapsed = (current_time - open_start_time) / 60
@@ -519,6 +535,8 @@ def main():
             last_alert_time = None
             notifications_muted = False
             bot_triggered_close = False
+            close_requested_time = None
+            close_timeout_alerted = False
         
         time.sleep(0.5)
 
