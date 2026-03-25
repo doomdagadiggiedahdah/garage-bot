@@ -8,7 +8,7 @@ import gc
 import sys
 import socket
 import os
-from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC, NOTIFY_USERNAMES
+from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC
 from umqtt.simple import MQTTClient
 
 # ============ CONFIGURATION ============
@@ -18,6 +18,7 @@ INITIAL_ALERT_MINUTES = 15
 REPEAT_ALERT_MINUTES = 5
 POLL_INTERVAL_SECONDS = 5
 CLOSE_TIMEOUT_SECONDS = 60  # Alert if door doesn't close within this many seconds
+NOTIFY_USERNAMES = ["cryptograthor", "stock_phish"]  # Usernames to tag in group alerts (no @ prefix)
 LAST_UPDATE_ID = 0
 
 # OTA Configuration
