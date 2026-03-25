@@ -8,7 +8,7 @@ import gc
 import sys
 import socket
 import os
-from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC
+from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC, NOTIFY_USERNAMES
 from umqtt.simple import MQTTClient
 
 # ============ CONFIGURATION ============
@@ -42,6 +42,8 @@ loop_count = 0
 bot_triggered_close = False
 close_requested_time = None
 close_timeout_alerted = False
+current_command_sender = None  # username of whoever sent the current command
+close_requester = None         # username of whoever triggered the last close
 
 # ============ LOGGING ============
 def log(message, level="INFO"):
@@ -306,7 +308,7 @@ def press_garage_button():
 
 # ============ COMMAND HANDLERS ============
 def handle_command(message_text):
-    global bot_triggered_close, close_requested_time, close_timeout_alerted
+    global bot_triggered_close, close_requested_time, close_timeout_alerted, close_requester
     cmd = message_text.lower().strip()
     if "@" in cmd:
         cmd = cmd.split("@")[0]
@@ -330,30 +332,35 @@ help - Show this message"""
         return get_door_status_text()
     
     elif cmd in ["open", "/open"]:
+        mention = f"@{current_command_sender} " if current_command_sender else ""
         if is_door_open():
             return "Door is already open!"
         else:
             press_garage_button()
-            return "Opening door..."
-    
+            return f"{mention}Opening door..."
+
     elif cmd in ["close", "/close"]:
+        mention = f"@{current_command_sender} " if current_command_sender else ""
         if not is_door_open():
             return "Door is already closed!"
         else:
             bot_triggered_close = True
             close_requested_time = time.ticks_ms() / 1000
             close_timeout_alerted = False
+            close_requester = current_command_sender
             press_garage_button()
-            return "Closing door..."
+            return f"{mention}Closing door..."
 
     elif cmd in ["press", "/press", "toggle", "/toggle"]:
+        mention = f"@{current_command_sender} " if current_command_sender else ""
         if is_door_open():
             bot_triggered_close = True
             close_requested_time = time.ticks_ms() / 1000
             close_timeout_alerted = False
+            close_requester = current_command_sender
         press_garage_button()
         current = "open" if is_door_open() else "closed"
-        return f"Button pressed! Door was {current}."
+        return f"{mention}Button pressed! Door was {current}."
     
     elif cmd in ["silence", "/silence", "quiet", "stop", "mute"]:
         return "SILENCE"
@@ -387,7 +394,7 @@ MQTT: {'connected' if mqtt_client else 'disconnected'}"""
 
 # ============ MAIN LOOP ============
 def main():
-    global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted
+    global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted, current_command_sender, close_requester
     
     boot_time = time.ticks_ms() // 1000
     
@@ -428,7 +435,9 @@ def main():
     bot_triggered_close = False
     close_requested_time = None
     close_timeout_alerted = False
-    
+    current_command_sender = None
+    close_requester = None
+
     # Timing
     last_poll_time = time.ticks_ms() / 1000
     last_heartbeat_time = time.ticks_ms() / 1000
@@ -475,6 +484,7 @@ def main():
                     chat_id = update["message"]["chat"]["id"]
                     
                     if str(chat_id) == str(TELEGRAM_CHAT_ID):
+                        current_command_sender = update["message"].get("from", {}).get("username", "")
                         response = handle_command(message_text)
                         
                         if response == "SILENCE":
@@ -511,7 +521,8 @@ def main():
                         should_alert = True
                 
                 if should_alert and not notifications_muted:
-                    message = f"ALERT: Garage door has been open for {int(elapsed_minutes)} minutes!"
+                    mentions = " ".join(f"@{u}" for u in NOTIFY_USERNAMES)
+                    message = f"{mentions} ALERT: Garage door has been open for {int(elapsed_minutes)} minutes!"
                     log(f"Sending alert: {message}")
                     send_telegram_message(message)
                     last_alert_time = current_time
@@ -520,7 +531,8 @@ def main():
             if bot_triggered_close and close_requested_time is not None and not close_timeout_alerted:
                 if current_time - close_requested_time >= CLOSE_TIMEOUT_SECONDS:
                     log("Close timeout - door may be blocked", "WARN")
-                    send_telegram_message("WARNING: Door did not close! It may be blocked.")
+                    mention = f"@{close_requester} " if close_requester else ""
+                    send_telegram_message(f"{mention}WARNING: Door did not close! It may be blocked.")
                     close_timeout_alerted = True
 
         else:
@@ -529,7 +541,8 @@ def main():
                 log(f"Door closed after {elapsed:.1f} minutes")
 
                 if elapsed >= 1 and bot_triggered_close:
-                    send_telegram_message(f"Door closed after {elapsed:.1f} minutes.")
+                    mention = f"@{close_requester} " if close_requester else ""
+                    send_telegram_message(f"{mention}Door closed after {elapsed:.1f} minutes.")
 
             open_start_time = None
             last_alert_time = None
@@ -537,6 +550,7 @@ def main():
             bot_triggered_close = False
             close_requested_time = None
             close_timeout_alerted = False
+            close_requester = None
         
         time.sleep(0.5)
 
