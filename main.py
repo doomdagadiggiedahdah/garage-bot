@@ -18,14 +18,14 @@ INITIAL_ALERT_MINUTES = 15
 REPEAT_ALERT_MINUTES = 5
 POLL_INTERVAL_SECONDS = 5
 CLOSE_TIMEOUT_SECONDS = 60  # Alert if door doesn't close within this many seconds
-NOTIFY_USERNAMES = ["cryptograthor", "stock_phish"]  # Usernames to tag in group alerts (no @ prefix)
+NOTIFY_USERNAMES = ["cryptograthor", "stock_phish", "Bibsky1"]  # Usernames to tag in group alerts (no @ prefix)
 LAST_UPDATE_ID = 0
 
 # OTA Configuration
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.0.3"  # Bump this when you release new versions
+CURRENT_VERSION = "1.0.4"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
