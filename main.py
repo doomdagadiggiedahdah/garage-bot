@@ -11,6 +11,10 @@ import os
 from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC
 from umqtt.simple import MQTTClient
 
+# UDP logging — send to same host as MQTT broker
+UDP_LOG_HOST = MQTT_BROKER
+UDP_LOG_PORT = 5005
+
 # ============ CONFIGURATION ============
 SENSOR_PIN = 32
 RELAY_PIN = 14
@@ -25,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.0.4"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.1.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -34,6 +38,29 @@ HEARTBEAT_INTERVAL_SECONDS = 60  # Print status every minute
 # Enable hardware watchdog (resets ESP32 if code hangs)
 ENABLE_WATCHDOG = True
 WATCHDOG_TIMEOUT_MS = 300000  # 5 minutes
+
+# ============ UDP LOGGING ============
+_udp_sock = None
+
+def _udp_init():
+    global _udp_sock
+    try:
+        _udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    except:
+        _udp_sock = None
+
+def _udp_send(msg):
+    if _udp_sock is None:
+        return
+    try:
+        _udp_sock.sendto(msg.encode(), (UDP_LOG_HOST, UDP_LOG_PORT))
+    except:
+        pass
+
+# ============ HTTP INSTRUMENTATION ============
+http_ok = 0       # successful HTTP requests
+http_fail = 0     # failed HTTP requests
+http_sock_err = 0 # socket/timeout errors specifically
 
 # ============ GLOBALS ============
 mqtt_client = None
@@ -54,7 +81,10 @@ def log(message, level="INFO"):
     uptime = timestamp - (boot_time or timestamp)
     log_line = f"[{uptime:>6}s] [{level:>5}] [mem:{free_mem:>6}] {message}"
     print(log_line)
-    
+
+    # Send ALL log lines over UDP (connectionless, can't leak)
+    _udp_send(log_line)
+
     # Also try MQTT for remote logging
     if level in ["ERROR", "WARN"] and mqtt_client:
         try:
@@ -241,54 +271,84 @@ def do_ota_update():
 
 # ============ TELEGRAM FUNCTIONS ============
 def send_telegram_message(message):
+    global http_ok, http_fail, http_sock_err
+    response = None
     try:
         if wdt:
             wdt.feed()  # Reset watchdog right before potentially slow operation
-        
+
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
         response = urequests.post(url, json=data, timeout=3)  # 3 second timeout
         status = response.status_code
         response.close()
-        
-        # CRITICAL: Force garbage collection after HTTP request
+        response = None
+
         gc.collect()
-        
+        http_ok += 1
         log(f"Telegram send: {status}")
         return status == 200
     except OSError as e:
+        http_fail += 1
+        http_sock_err += 1
         log(f"Telegram timeout/network error: {e}", "WARN")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
         gc.collect()
         return False
     except Exception as e:
+        http_fail += 1
         log_exception(e, "send_telegram_message")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
         gc.collect()
         return False
 
 
 def get_telegram_updates():
-    global LAST_UPDATE_ID
+    global LAST_UPDATE_ID, http_ok, http_fail, http_sock_err
+    response = None
     try:
         if wdt:
             wdt.feed()  # Reset watchdog right before potentially slow operation
-        
+
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
         response = urequests.get(url, timeout=10)  # 10 second timeout
         data = response.json()
         response.close()
-        
-        # CRITICAL: Force garbage collection after HTTP request
+        response = None
+
         gc.collect()
-        
+        http_ok += 1
+
         if data.get("ok") and data.get("result"):
             return data["result"]
         return []
     except OSError as e:
+        http_fail += 1
+        http_sock_err += 1
         log(f"Telegram poll timeout: {e}", "WARN")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
         gc.collect()
         return []
     except Exception as e:
+        http_fail += 1
         log_exception(e, "get_telegram_updates")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
         gc.collect()
         return []
 
@@ -398,7 +458,8 @@ def main():
     global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted, current_command_sender, close_requester
     
     boot_time = time.ticks_ms() // 1000
-    
+    _udp_init()
+
     log("="*40)
     log("Garage door monitor starting")
     log(f"Version: {CURRENT_VERSION}")
@@ -467,10 +528,15 @@ def main():
             last_heartbeat_time = current_time
             door_state = "OPEN" if is_door_open() else "CLOSED"
             uptime_min = int((current_time - boot_time) / 60)
-            log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}")
-            
-            # Periodic garbage collection
             gc.collect()
+            log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}, http_ok={http_ok}, http_fail={http_fail}, sock_err={http_sock_err}")
+
+            # Publish heap data over MQTT for long-term tracking
+            if mqtt_client:
+                try:
+                    mqtt_client.publish("garage/heap", f"{uptime_min},{gc.mem_free()},{loop_count},{http_ok},{http_fail},{http_sock_err}")
+                except:
+                    pass
         
         # -------- Poll Telegram for commands --------
         if current_time - last_poll_time >= POLL_INTERVAL_SECONDS:
