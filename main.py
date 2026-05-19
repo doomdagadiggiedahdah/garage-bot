@@ -29,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.1.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.1.1"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -215,58 +215,102 @@ def check_for_update():
 
 def do_ota_update():
     """Download new main.py from GitHub and reboot"""
+    response = None
     try:
+        # Free memory before starting — the download needs RAM
+        gc.collect()
+
         # Feed watchdog before starting
         if wdt:
             wdt.feed()
-        
+
         log("Starting OTA update from GitHub...")
         send_telegram_message("Downloading update from GitHub...")
-        
+
         url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}/main.py"
-        
+
         # Longer timeout for downloading full file
-        response = urequests.get(url, timeout=10)
-        
+        response = urequests.get(url, timeout=30)
+
         # Feed watchdog during download
         if wdt:
             wdt.feed()
-        
+
         if response.status_code == 200:
-            # Get new code
-            new_code = response.text
+            # Stream response to file in chunks to avoid loading entire file into RAM
+            bytes_written = 0
+            with open("main.py.tmp", "wb") as f:
+                while True:
+                    chunk = response.raw.read(512)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    bytes_written += len(chunk)
+                    if wdt:
+                        wdt.feed()
             response.close()
-            
-            # Feed watchdog again
-            if wdt:
-                wdt.feed()
-            
+            response = None
             gc.collect()
-            
-            log(f"Downloaded {len(new_code)} bytes, writing to main.py...")
-            
-            # Write new code
-            with open("main.py", "w") as f:
-                f.write(new_code)
-            
+
+            if bytes_written < 1000:
+                log(f"Download too small ({bytes_written} bytes), aborting", "ERROR")
+                try:
+                    os.remove("main.py.tmp")
+                except:
+                    pass
+                send_telegram_message(f"Update failed: download too small ({bytes_written}B)")
+                return False
+
+            log(f"Downloaded {bytes_written} bytes, replacing main.py...")
+
+            # Replace main.py with the new version
+            os.remove("main.py")
+            os.rename("main.py.tmp", "main.py")
+
             log("Update written successfully!")
-            send_telegram_message("Update installed! Rebooting in 3 seconds...")
+            send_telegram_message(f"Update installed ({bytes_written}B)! Rebooting in 3 seconds...")
             time.sleep(3)
             machine.reset()
         else:
             log(f"Download failed: HTTP {response.status_code}", "ERROR")
             response.close()
+            response = None
             send_telegram_message(f"Update failed: HTTP {response.status_code}")
             return False
-            
+
     except OSError as e:
         log(f"OTA download timeout/network error: {e}", "ERROR")
-        send_telegram_message(f"Update failed: Network error")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
         gc.collect()
+        try:
+            send_telegram_message(f"Update failed: Network error - {e}")
+        except:
+            log("Could not send update failure notification", "ERROR")
+        try:
+            os.remove("main.py.tmp")
+        except:
+            pass
         return False
     except Exception as e:
         log_exception(e, "do_ota_update")
-        send_telegram_message(f"Update failed: {str(e)[:100]}")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
+        gc.collect()
+        try:
+            send_telegram_message(f"Update failed: {type(e).__name__}: {str(e)[:80]}")
+        except:
+            log("Could not send update failure notification", "ERROR")
+        try:
+            os.remove("main.py.tmp")
+        except:
+            pass
         return False
 
 # ============ TELEGRAM FUNCTIONS ============
@@ -376,20 +420,7 @@ def handle_command(message_text):
     
     log(f"Command received: {cmd}")
     
-    if cmd in ["help", "/help", "?"]:
-        return """Garage Door Bot Commands:
-
-status - Check if door is open or closed
-open - Open the door (if closed)
-close - Close the door (if open)
-press - Press the button (toggle door)
-silence - Mute alerts until door closes
-version - Show current firmware version
-update - Check for and install updates
-debug - Show system info
-help - Show this message"""
-    
-    elif cmd in ["status", "/status"]:
+    if cmd in ["status", "/status"]:
         return get_door_status_text()
     
     elif cmd in ["open", "/open"]:
@@ -412,22 +443,8 @@ help - Show this message"""
             press_garage_button()
             return f"{mention}Closing door..."
 
-    elif cmd in ["press", "/press", "toggle", "/toggle"]:
-        mention = f"@{current_command_sender} " if current_command_sender else ""
-        if is_door_open():
-            bot_triggered_close = True
-            close_requested_time = time.ticks_ms() / 1000
-            close_timeout_alerted = False
-            close_requester = current_command_sender
-        press_garage_button()
-        current = "open" if is_door_open() else "closed"
-        return f"{mention}Button pressed! Door was {current}."
-    
     elif cmd in ["silence", "/silence", "quiet", "stop", "mute"]:
         return "SILENCE"
-    
-    elif cmd in ["version", "/version", "ver"]:
-        return f"Version: {CURRENT_VERSION}"
     
     elif cmd in ["update", "/update"]:
         new_version = check_for_update()
