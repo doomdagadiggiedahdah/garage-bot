@@ -22,14 +22,14 @@ INITIAL_ALERT_MINUTES = 15
 REPEAT_ALERT_MINUTES = 5
 POLL_INTERVAL_SECONDS = 5
 CLOSE_TIMEOUT_SECONDS = 60  # Alert if door doesn't close within this many seconds
-NOTIFY_USERNAMES = ["cryptograthor", "stock_phish", "Bibsky1"]  # Usernames to tag in group alerts (no @ prefix)
+NOTIFY_USERNAMES = ["cryptograthor", "stock_phish", "Bibsky1", "martinthedancer"]  # Usernames to tag in group alerts (no @ prefix)
 LAST_UPDATE_ID = 0
 
 # OTA Configuration
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.3.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.3.1"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -308,6 +308,7 @@ def send_telegram_message(message):
     global http_ok, http_fail, http_sock_err
     response = None
     try:
+        gc.collect()
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
         response = urequests.post(url, json=data, timeout=3)  # 3 second timeout
@@ -346,6 +347,7 @@ def get_telegram_updates():
     global LAST_UPDATE_ID, http_ok, http_fail, http_sock_err
     response = None
     try:
+        gc.collect()
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
         response = urequests.get(url, timeout=10)  # 10 second timeout
         data = response.json()
