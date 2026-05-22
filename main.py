@@ -29,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.2.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.3.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -37,7 +37,7 @@ HEARTBEAT_INTERVAL_SECONDS = 60  # Print status every minute
 
 # Enable hardware watchdog (resets ESP32 if code hangs)
 ENABLE_WATCHDOG = True
-WATCHDOG_TIMEOUT_MS = 300000  # 5 minutes
+WATCHDOG_TIMEOUT_MS = 120000  # 2 minutes — only fed at top of main loop
 
 # ============ UDP LOGGING ============
 _udp_sock = None
@@ -104,8 +104,6 @@ def log_exception(e, context=""):
 def connect_mqtt():
     global mqtt_client
     try:
-        if wdt:
-            wdt.feed()
         mqtt_client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, MQTT_PORT)
         mqtt_client.connect()
         log("MQTT connected")
@@ -179,9 +177,6 @@ def ensure_wifi():
 def check_for_update():
     """Check GitHub for a newer version"""
     try:
-        if wdt:
-            wdt.feed()
-        
         log("Checking for updates...")
         
         # Fetch version file from GitHub
@@ -220,7 +215,6 @@ def do_ota_update():
         # Free memory before starting — the download needs RAM
         gc.collect()
 
-        # Feed watchdog before starting
         if wdt:
             wdt.feed()
 
@@ -231,10 +225,6 @@ def do_ota_update():
 
         # Longer timeout for downloading full file
         response = urequests.get(url, timeout=30)
-
-        # Feed watchdog during download
-        if wdt:
-            wdt.feed()
 
         if response.status_code == 200:
             # Stream response to file in chunks to avoid loading entire file into RAM
@@ -318,9 +308,6 @@ def send_telegram_message(message):
     global http_ok, http_fail, http_sock_err
     response = None
     try:
-        if wdt:
-            wdt.feed()  # Reset watchdog right before potentially slow operation
-
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
         response = urequests.post(url, json=data, timeout=3)  # 3 second timeout
@@ -359,9 +346,6 @@ def get_telegram_updates():
     global LAST_UPDATE_ID, http_ok, http_fail, http_sock_err
     response = None
     try:
-        if wdt:
-            wdt.feed()  # Reset watchdog right before potentially slow operation
-
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
         response = urequests.get(url, timeout=10)  # 10 second timeout
         data = response.json()
@@ -477,9 +461,20 @@ def main():
     boot_time = time.ticks_ms() // 1000
     _udp_init()
 
+    # Determine why we booted
+    reset_causes = {
+        machine.PWRON_RESET: "POWER_ON",
+        machine.HARD_RESET: "HARD_RESET",
+        machine.WDT_RESET: "WATCHDOG",
+        machine.DEEPSLEEP_RESET: "DEEPSLEEP",
+        machine.SOFT_RESET: "SOFT_RESET",
+    }
+    reset_reason = reset_causes.get(machine.reset_cause(), f"UNKNOWN({machine.reset_cause()})")
+
     log("="*40)
     log("Garage door monitor starting")
     log(f"Version: {CURRENT_VERSION}")
+    log(f"Reset reason: {reset_reason}")
     log(f"Free memory at boot: {gc.mem_free()}")
     log("="*40)
     
@@ -682,7 +677,7 @@ def save_crash(e):
         pass
 
 def send_last_crashes():
-    """On boot, send any saved crash dumps to Telegram, then delete them."""
+    """On boot, send any saved crash dumps to Telegram. Files are kept on flash."""
     crash_files = _crash_files()
     if not crash_files:
         return
@@ -693,7 +688,6 @@ def send_last_crashes():
             if crash_data:
                 log(f"Crash dump ({fname}):\n{crash_data}", "ERROR")
                 send_telegram_message(f"PREV CRASH ({fname}):\n{crash_data[:500]}")
-            os.remove(fname)
         except Exception as e:
             log(f"Failed to send crash dump {fname}: {e}", "WARN")
 
