@@ -29,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.3.2"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.3.3"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -104,6 +104,8 @@ def log_exception(e, context=""):
 def connect_mqtt():
     global mqtt_client
     try:
+        if wdt:
+            wdt.feed()
         mqtt_client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, MQTT_PORT)
         mqtt_client.connect()
         log("MQTT connected")
@@ -177,6 +179,8 @@ def ensure_wifi():
 def check_for_update():
     """Check GitHub for a newer version"""
     try:
+        if wdt:
+            wdt.feed()
         log("Checking for updates...")
         
         # Fetch version file from GitHub
@@ -225,6 +229,9 @@ def do_ota_update():
 
         # Longer timeout for downloading full file
         response = urequests.get(url, timeout=30)
+
+        if wdt:
+            wdt.feed()
 
         if response.status_code == 200:
             # Stream response to file in chunks to avoid loading entire file into RAM
@@ -309,6 +316,8 @@ def send_telegram_message(message, _retries=2):
     for attempt in range(_retries):
         response = None
         try:
+            if wdt:
+                wdt.feed()
             gc.collect()
             time.sleep(0.1)
             url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -344,8 +353,8 @@ def send_telegram_message(message, _retries=2):
                     response.close()
                 except:
                     pass
-        gc.collect()
-        return False
+            gc.collect()
+            return False
 
 
 def get_telegram_updates():
@@ -353,6 +362,8 @@ def get_telegram_updates():
     for attempt in range(2):
         response = None
         try:
+            if wdt:
+                wdt.feed()
             gc.collect()
             time.sleep(0.1)
             url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
@@ -388,9 +399,9 @@ def get_telegram_updates():
                 try:
                     response.close()
                 except:
-                pass
-        gc.collect()
-        return []
+                    pass
+            gc.collect()
+            return []
 
 
 # ============ DOOR FUNCTIONS ============
