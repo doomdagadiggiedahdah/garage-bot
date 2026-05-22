@@ -29,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.3.1"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.3.2"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -304,80 +304,90 @@ def do_ota_update():
         return False
 
 # ============ TELEGRAM FUNCTIONS ============
-def send_telegram_message(message):
+def send_telegram_message(message, _retries=2):
     global http_ok, http_fail, http_sock_err
-    response = None
-    try:
-        gc.collect()
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
-        response = urequests.post(url, json=data, timeout=3)  # 3 second timeout
-        status = response.status_code
-        response.close()
+    for attempt in range(_retries):
         response = None
+        try:
+            gc.collect()
+            time.sleep(0.1)
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
+            response = urequests.post(url, json=data, timeout=3)
+            status = response.status_code
+            response.close()
+            response = None
 
-        gc.collect()
-        http_ok += 1
-        log(f"Telegram send: {status}")
-        return status == 200
-    except OSError as e:
-        http_fail += 1
-        http_sock_err += 1
-        log(f"Telegram timeout/network error: {e}", "WARN")
-        if response:
-            try:
-                response.close()
-            except:
-                pass
-        gc.collect()
-        return False
-    except Exception as e:
-        http_fail += 1
-        log_exception(e, "send_telegram_message")
-        if response:
-            try:
-                response.close()
-            except:
-                pass
+            gc.collect()
+            http_ok += 1
+            log(f"Telegram send: {status}")
+            return status == 200
+        except OSError as e:
+            http_fail += 1
+            http_sock_err += 1
+            log(f"Telegram error (attempt {attempt+1}): {e}", "WARN")
+            if response:
+                try:
+                    response.close()
+                except:
+                    pass
+            gc.collect()
+            if attempt < _retries - 1:
+                time.sleep(1)
+                continue
+            return False
+        except Exception as e:
+            http_fail += 1
+            log_exception(e, "send_telegram_message")
+            if response:
+                try:
+                    response.close()
+                except:
+                    pass
         gc.collect()
         return False
 
 
 def get_telegram_updates():
     global LAST_UPDATE_ID, http_ok, http_fail, http_sock_err
-    response = None
-    try:
-        gc.collect()
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
-        response = urequests.get(url, timeout=10)  # 10 second timeout
-        data = response.json()
-        response.close()
+    for attempt in range(2):
         response = None
+        try:
+            gc.collect()
+            time.sleep(0.1)
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
+            response = urequests.get(url, timeout=10)
+            data = response.json()
+            response.close()
+            response = None
 
-        gc.collect()
-        http_ok += 1
+            gc.collect()
+            http_ok += 1
 
-        if data.get("ok") and data.get("result"):
-            return data["result"]
-        return []
-    except OSError as e:
-        http_fail += 1
-        http_sock_err += 1
-        log(f"Telegram poll timeout: {e}", "WARN")
-        if response:
-            try:
-                response.close()
-            except:
-                pass
-        gc.collect()
-        return []
-    except Exception as e:
-        http_fail += 1
-        log_exception(e, "get_telegram_updates")
-        if response:
-            try:
-                response.close()
-            except:
+            if data.get("ok") and data.get("result"):
+                return data["result"]
+            return []
+        except OSError as e:
+            http_fail += 1
+            http_sock_err += 1
+            log(f"Telegram poll error (attempt {attempt+1}): {e}", "WARN")
+            if response:
+                try:
+                    response.close()
+                except:
+                    pass
+            gc.collect()
+            if attempt < 1:
+                time.sleep(1)
+                continue
+            return []
+        except Exception as e:
+            http_fail += 1
+            log_exception(e, "get_telegram_updates")
+            if response:
+                try:
+                    response.close()
+                except:
                 pass
         gc.collect()
         return []
