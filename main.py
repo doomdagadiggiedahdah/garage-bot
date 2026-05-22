@@ -29,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.1.1"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.2.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -496,6 +496,9 @@ def main():
     
     # Send startup message
     send_telegram_message(f"Garage door bot is online!\nVersion: {CURRENT_VERSION}\n\nType 'help' for commands.")
+
+    # Check for crash dumps from previous runs
+    send_last_crashes()
     
     # Check for updates on boot (optional)
     if CHECK_UPDATE_ON_BOOT:
@@ -546,7 +549,8 @@ def main():
             door_state = "OPEN" if is_door_open() else "CLOSED"
             uptime_min = int((current_time - boot_time) / 60)
             gc.collect()
-            log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}, http_ok={http_ok}, http_fail={http_fail}, sock_err={http_sock_err}")
+            rssi = network.WLAN(network.STA_IF).status('rssi')
+            log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}, rssi={rssi}, http_ok={http_ok}, http_fail={http_fail}, sock_err={http_sock_err}")
 
             # Publish heap data over MQTT for long-term tracking
             if mqtt_client:
@@ -573,7 +577,7 @@ def main():
                         
                         if response == "SILENCE":
                             notifications_muted = True
-                            send_telegram_message("🔇 Alerts muted until door closes.")
+                            send_telegram_message("Alerts muted until door closes.")
                         elif response:
                             send_telegram_message(response)
                     else:
@@ -638,36 +642,77 @@ def main():
         
         time.sleep(0.5)
 
+# ============ CRASH DUMP ============
+MAX_CRASH_FILES = 5
+
+def _crash_files():
+    """Return sorted list of crash-NN.log files on the filesystem."""
+    files = []
+    for f in os.listdir("/"):
+        if f.startswith("crash-") and f.endswith(".log"):
+            files.append(f)
+    files.sort()
+    return files
+
+def save_crash(e):
+    """Write crash traceback to a numbered file, rotating old ones."""
+    try:
+        import io
+        buf = io.StringIO()
+        sys.print_exception(e, buf)
+        trace = buf.getvalue()
+
+        existing = _crash_files()
+        # Determine next number
+        if existing:
+            last_num = int(existing[-1].replace("crash-", "").replace(".log", ""))
+            next_num = last_num + 1
+        else:
+            next_num = 1
+
+        # Write new crash file
+        with open(f"crash-{next_num:02d}.log", "w") as f:
+            f.write(trace)
+
+        # Delete oldest if over limit
+        existing = _crash_files()
+        while len(existing) > MAX_CRASH_FILES:
+            os.remove(existing.pop(0))
+    except:
+        pass
+
+def send_last_crashes():
+    """On boot, send any saved crash dumps to Telegram, then delete them."""
+    crash_files = _crash_files()
+    if not crash_files:
+        return
+    for fname in crash_files:
+        try:
+            with open(fname, "r") as f:
+                crash_data = f.read()
+            if crash_data:
+                log(f"Crash dump ({fname}):\n{crash_data}", "ERROR")
+                send_telegram_message(f"PREV CRASH ({fname}):\n{crash_data[:500]}")
+            os.remove(fname)
+        except Exception as e:
+            log(f"Failed to send crash dump {fname}: {e}", "WARN")
+
 # ============ ENTRY POINT ============
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+        # Save crash to file FIRST (most reliable, survives reboot)
+        save_crash(e)
+
         # Try to log the crash
         log_exception(e, "MAIN")
-        
-        # Try to send crash notification
-        try:
-            gc.collect()
-            import io
-            buf = io.StringIO()
-            sys.print_exception(e, buf)
-            crash_msg = f"CRASH: {buf.getvalue()}"
-            
-            # Try MQTT first (faster)
-            if mqtt_client:
-                mqtt_client.publish(MQTT_CRASH_TOPIC, crash_msg)
-            
-            # Then try Telegram
-            send_telegram_message(f"CRASH:\n{buf.getvalue()[:500]}")
-        except:
-            pass
-        
+
         # Print to serial for Pi logger
         print("="*40)
         print("FATAL CRASH - RESTARTING IN 5 SECONDS")
         print("="*40)
         sys.print_exception(e)
-        
+
         time.sleep(5)
         machine.reset()
