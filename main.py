@@ -66,6 +66,7 @@ http_sock_err = 0 # socket/timeout errors specifically
 mqtt_client = None
 wdt = None
 boot_time = None
+uptime_seconds = 0  # accumulated uptime in seconds (safe from ticks_ms wraparound)
 loop_count = 0
 bot_triggered_close = False
 close_requested_time = None
@@ -77,8 +78,7 @@ close_requester = None         # username of whoever triggered the last close
 def log(message, level="INFO"):
     """Unified logging with timestamp and memory info"""
     free_mem = gc.mem_free()
-    timestamp = time.ticks_ms() // 1000
-    uptime = timestamp - (boot_time or timestamp)
+    uptime = uptime_seconds
     log_line = f"[{uptime:>6}s] [{level:>5}] [mem:{free_mem:>6}] {message}"
     print(log_line)
 
@@ -323,7 +323,7 @@ def send_telegram_message(message):
 
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
-        response = urequests.post(url, json=data, timeout=3)  # 3 second timeout
+        response = urequests.post(url, json=data, timeout=10)  # 10 second timeout (TLS handshake alone can take 2-5s)
         status = response.status_code
         response.close()
         response = None
@@ -437,7 +437,7 @@ def handle_command(message_text):
             return "Door is already closed!"
         else:
             bot_triggered_close = True
-            close_requested_time = time.ticks_ms() / 1000
+            close_requested_time = time.ticks_ms()
             close_timeout_alerted = False
             close_requester = current_command_sender
             press_garage_button()
@@ -458,10 +458,9 @@ def handle_command(message_text):
     
     # Debug command to check system health remotely
     elif cmd in ["debug", "/debug", "info", "/info"]:
-        uptime = (time.ticks_ms() // 1000) - boot_time
         return f"""System Info:
 Version: {CURRENT_VERSION}
-Uptime: {uptime // 60}m {uptime % 60}s
+Uptime: {uptime_seconds // 60}m {uptime_seconds % 60}s
 Free memory: {gc.mem_free()} bytes
 Loop count: {loop_count}
 Door: {'OPEN' if is_door_open() else 'CLOSED'}
@@ -472,9 +471,9 @@ MQTT: {'connected' if mqtt_client else 'disconnected'}"""
 
 # ============ MAIN LOOP ============
 def main():
-    global LAST_UPDATE_ID, wdt, boot_time, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted, current_command_sender, close_requester
+    global LAST_UPDATE_ID, wdt, boot_time, uptime_seconds, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted, current_command_sender, close_requester
     
-    boot_time = time.ticks_ms() // 1000
+    boot_time = time.ticks_ms()
     _udp_init()
 
     log("="*40)
@@ -521,15 +520,15 @@ def main():
     close_requester = None
 
     # Timing
-    last_poll_time = time.ticks_ms() / 1000
-    last_heartbeat_time = time.ticks_ms() / 1000
+    last_poll_time = time.ticks_ms()
+    last_heartbeat_time = time.ticks_ms()
     last_door_state = is_door_open()
     
     log("Entering main loop")
     
     while True:
         loop_count += 1
-        current_time = time.ticks_ms() / 1000
+        current_time = time.ticks_ms()
         
         # CRITICAL: Feed the watchdog
         if wdt:
@@ -544,10 +543,11 @@ def main():
         ensure_mqtt()
         
         # -------- Heartbeat --------
-        if current_time - last_heartbeat_time >= HEARTBEAT_INTERVAL_SECONDS:
+        if time.ticks_diff(current_time, last_heartbeat_time) >= HEARTBEAT_INTERVAL_SECONDS * 1000:
+            uptime_seconds += time.ticks_diff(current_time, last_heartbeat_time) // 1000
             last_heartbeat_time = current_time
             door_state = "OPEN" if is_door_open() else "CLOSED"
-            uptime_min = int((current_time - boot_time) / 60)
+            uptime_min = uptime_seconds // 60
             gc.collect()
             rssi = network.WLAN(network.STA_IF).status('rssi')
             log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}, rssi={rssi}, http_ok={http_ok}, http_fail={http_fail}, sock_err={http_sock_err}")
@@ -560,7 +560,7 @@ def main():
                     pass
         
         # -------- Poll Telegram for commands --------
-        if current_time - last_poll_time >= POLL_INTERVAL_SECONDS:
+        if time.ticks_diff(current_time, last_poll_time) >= POLL_INTERVAL_SECONDS * 1000:
             last_poll_time = current_time
             
             updates = get_telegram_updates()
@@ -598,13 +598,13 @@ def main():
                 notifications_muted = False
                 log("Door opened - starting timer")
             else:
-                elapsed_minutes = (current_time - open_start_time) / 60
+                elapsed_minutes = time.ticks_diff(current_time, open_start_time) / 60000
                 
                 should_alert = False
                 if last_alert_time is None and elapsed_minutes >= INITIAL_ALERT_MINUTES:
                     should_alert = True
                 elif last_alert_time is not None:
-                    minutes_since_alert = (current_time - last_alert_time) / 60
+                    minutes_since_alert = time.ticks_diff(current_time, last_alert_time) / 60000
                     if minutes_since_alert >= REPEAT_ALERT_MINUTES:
                         should_alert = True
                 
@@ -617,7 +617,7 @@ def main():
 
             # Check if a bot-triggered close timed out without the door closing
             if bot_triggered_close and close_requested_time is not None and not close_timeout_alerted:
-                if current_time - close_requested_time >= CLOSE_TIMEOUT_SECONDS:
+                if time.ticks_diff(current_time, close_requested_time) >= CLOSE_TIMEOUT_SECONDS * 1000:
                     log("Close timeout - door may be blocked", "WARN")
                     mention = f"@{close_requester} " if close_requester else ""
                     send_telegram_message(f"{mention}WARNING: Door did not close! It may be blocked.")
@@ -625,7 +625,7 @@ def main():
 
         else:
             if open_start_time is not None:
-                elapsed = (current_time - open_start_time) / 60
+                elapsed = time.ticks_diff(current_time, open_start_time) / 60000
                 log(f"Door closed after {elapsed:.1f} minutes")
 
                 if elapsed >= 1 and bot_triggered_close:
