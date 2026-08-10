@@ -8,11 +8,11 @@ import gc
 import sys
 import socket
 import os
-from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID, MQTT_LOG_TOPIC, MQTT_CRASH_TOPIC
-from umqtt.simple import MQTTClient
+from secrets import SSID, PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
-# UDP logging — send to same host as MQTT broker
-UDP_LOG_HOST = MQTT_BROKER
+# UDP log receiver — Jetson Orin Nano on the LAN
+# IMPORTANT: If this IP changes, update ARCHITECTURE.md and LOG_SERVER_SETUP.md to match
+UDP_LOG_HOST = "192.168.50.180"
 UDP_LOG_PORT = 5005
 
 # ============ CONFIGURATION ============
@@ -29,7 +29,7 @@ LAST_UPDATE_ID = 0
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.3.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.5.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -39,8 +39,10 @@ HEARTBEAT_INTERVAL_SECONDS = 60  # Print status every minute
 ENABLE_WATCHDOG = True
 WATCHDOG_TIMEOUT_MS = 300000  # 5 minutes
 
+
 # ============ UDP LOGGING ============
 _udp_sock = None
+
 
 def _udp_init():
     global _udp_sock
@@ -48,6 +50,7 @@ def _udp_init():
         _udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     except:
         _udp_sock = None
+
 
 def _udp_send(msg):
     if _udp_sock is None:
@@ -57,13 +60,13 @@ def _udp_send(msg):
     except:
         pass
 
+
 # ============ HTTP INSTRUMENTATION ============
 http_ok = 0       # successful HTTP requests
 http_fail = 0     # failed HTTP requests
 http_sock_err = 0 # socket/timeout errors specifically
 
 # ============ GLOBALS ============
-mqtt_client = None
 wdt = None
 boot_time = None
 uptime_seconds = 0  # accumulated uptime in seconds (safe from ticks_ms wraparound)
@@ -74,23 +77,18 @@ close_timeout_alerted = False
 current_command_sender = None  # username of whoever sent the current command
 close_requester = None         # username of whoever triggered the last close
 
+
 # ============ LOGGING ============
 def log(message, level="INFO"):
     """Unified logging with timestamp and memory info"""
+    # IMPORTANT: If this format changes, update ARCHITECTURE.md and LOG_SERVER_SETUP.md "Log Format"
     free_mem = gc.mem_free()
     uptime = uptime_seconds
     log_line = f"[{uptime:>6}s] [{level:>5}] [mem:{free_mem:>6}] {message}"
     print(log_line)
-
-    # Send ALL log lines over UDP (connectionless, can't leak)
+    # Send ALL log lines over UDP (connectionless, can't block, can't leak)
     _udp_send(log_line)
 
-    # Also try MQTT for remote logging
-    if level in ["ERROR", "WARN"] and mqtt_client:
-        try:
-            mqtt_client.publish(MQTT_LOG_TOPIC, log_line)
-        except:
-            pass
 
 def log_exception(e, context=""):
     """Log exception with full traceback"""
@@ -100,47 +98,29 @@ def log_exception(e, context=""):
     trace = buf.getvalue()
     log(f"EXCEPTION in {context}:\n{trace}", "ERROR")
 
-# ============ MQTT ============
-def connect_mqtt():
-    global mqtt_client
-    try:
-        if wdt:
-            wdt.feed()
-        mqtt_client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, MQTT_PORT)
-        mqtt_client.connect()
-        log("MQTT connected")
-        return True
-    except Exception as e:
-        log_exception(e, "connect_mqtt")
-        mqtt_client = None
-        return False
-
-def ensure_mqtt():
-    global mqtt_client
-    if mqtt_client is None:
-        connect_mqtt()
 
 # ============ SETUP ============
 sensor = Pin(SENSOR_PIN, Pin.IN, Pin.PULL_UP)
 relay = Pin(RELAY_PIN, Pin.OUT)
 relay.value(0)
 
+
 # ============ WIFI ============
 def connect_wifi():
     wlan = network.WLAN(network.STA_IF)
     log(wlan.active(True))
-    
+
     attempt = 0
     while True:  # INFINITE RETRY
         attempt += 1
-        
+
         # Check if already connected
         if wlan.isconnected():
             log(f"WiFi connected! IP: {wlan.ifconfig()[0]}")
             return True
-        
+
         log(f"WiFi attempt #{attempt}...")
-        
+
         try:
             wlan.config(txpower=80)
             wlan.connect(SSID, PASSWORD)
@@ -150,23 +130,24 @@ def connect_wifi():
             if wdt:
                 wdt.feed()
             continue
-        
+
         # Wait up to 30 seconds for this attempt
         for i in range(30):
             if wdt:
                 wdt.feed()
-            
+
             if wlan.isconnected():
                 log(f"WiFi connected on attempt #{attempt}! IP: {wlan.ifconfig()[0]}")
                 return True
-            
+
             time.sleep(1)
-        
+
         # Failed, wait before retry
         log(f"Attempt #{attempt} failed, retrying in 1s...", "WARN")
         time.sleep(1)
         if wdt:
             wdt.feed()
+
 
 def ensure_wifi():
     wlan = network.WLAN(network.STA_IF)
@@ -175,26 +156,27 @@ def ensure_wifi():
         return connect_wifi()
     return True
 
+
 # ============ OTA UPDATE FUNCTIONS ============
 def check_for_update():
     """Check GitHub for a newer version"""
     try:
         if wdt:
             wdt.feed()
-        
+
         log("Checking for updates...")
-        
+
         # Fetch version file from GitHub
         url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}/version.txt"
-        response = urequests.get(url, timeout=10)  # 15 second timeout
-        
+        response = urequests.get(url, timeout=10)
+
         if response.status_code == 200:
             remote_version = response.text.strip()
             response.close()
             gc.collect()
-            
+
             log(f"Version check: Current={CURRENT_VERSION}, Remote={remote_version}")
-            
+
             if remote_version != CURRENT_VERSION:
                 return remote_version
             else:
@@ -202,9 +184,9 @@ def check_for_update():
         else:
             log(f"Version check failed: HTTP {response.status_code}", "WARN")
             response.close()
-        
+
         return None
-        
+
     except OSError as e:
         log(f"Version check timeout/network error: {e}", "WARN")
         gc.collect()
@@ -212,6 +194,7 @@ def check_for_update():
     except Exception as e:
         log_exception(e, "check_for_update")
         return None
+
 
 def do_ota_update():
     """Download new main.py from GitHub and reboot"""
@@ -248,6 +231,7 @@ def do_ota_update():
                     bytes_written += len(chunk)
                     if wdt:
                         wdt.feed()
+
             response.close()
             response = None
             gc.collect()
@@ -313,6 +297,7 @@ def do_ota_update():
             pass
         return False
 
+
 # ============ TELEGRAM FUNCTIONS ============
 def send_telegram_message(message):
     global http_ok, http_fail, http_sock_err
@@ -320,14 +305,12 @@ def send_telegram_message(message):
     try:
         if wdt:
             wdt.feed()  # Reset watchdog right before potentially slow operation
-
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
-        response = urequests.post(url, json=data, timeout=10)  # 10 second timeout (TLS handshake alone can take 2-5s)
+        response = urequests.post(url, json=data, timeout=10)  # TLS handshake alone can take 2-5s
         status = response.status_code
         response.close()
         response = None
-
         gc.collect()
         http_ok += 1
         log(f"Telegram send: {status}")
@@ -361,13 +344,11 @@ def get_telegram_updates():
     try:
         if wdt:
             wdt.feed()  # Reset watchdog right before potentially slow operation
-
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}&timeout=2"
-        response = urequests.get(url, timeout=10)  # 10 second timeout
+        response = urequests.get(url, timeout=10)
         data = response.json()
         response.close()
         response = None
-
         gc.collect()
         http_ok += 1
 
@@ -401,8 +382,10 @@ def get_telegram_updates():
 def is_door_open():
     return sensor.value() == 1
 
+
 def get_door_status_text():
     return "Door is OPEN" if is_door_open() else "Door is CLOSED"
+
 
 def press_garage_button():
     log("Pressing garage button")
@@ -411,18 +394,20 @@ def press_garage_button():
     relay.value(0)
     log("Button press complete")
 
+
 # ============ COMMAND HANDLERS ============
+# IMPORTANT: If commands are added/removed, update ARCHITECTURE.md "Telegram" section
 def handle_command(message_text):
     global bot_triggered_close, close_requested_time, close_timeout_alerted, close_requester
     cmd = message_text.lower().strip()
     if "@" in cmd:
         cmd = cmd.split("@")[0]
-    
+
     log(f"Command received: {cmd}")
-    
+
     if cmd in ["status", "/status"]:
         return get_door_status_text()
-    
+
     elif cmd in ["open", "/open"]:
         mention = f"@{current_command_sender} " if current_command_sender else ""
         if is_door_open():
@@ -445,7 +430,7 @@ def handle_command(message_text):
 
     elif cmd in ["silence", "/silence", "quiet", "stop", "mute"]:
         return "SILENCE"
-    
+
     elif cmd in ["update", "/update"]:
         new_version = check_for_update()
         if new_version:
@@ -455,7 +440,7 @@ def handle_command(message_text):
             return None  # Will reboot, so no response
         else:
             return f"Already on latest version ({CURRENT_VERSION})"
-    
+
     # Debug command to check system health remotely
     elif cmd in ["debug", "/debug", "info", "/info"]:
         return f"""System Info:
@@ -464,41 +449,38 @@ Uptime: {uptime_seconds // 60}m {uptime_seconds % 60}s
 Free memory: {gc.mem_free()} bytes
 Loop count: {loop_count}
 Door: {'OPEN' if is_door_open() else 'CLOSED'}
-MQTT: {'connected' if mqtt_client else 'disconnected'}"""
-    
+HTTP: ok={http_ok} fail={http_fail} sock_err={http_sock_err}"""
+
     else:
         return None
+
 
 # ============ MAIN LOOP ============
 def main():
     global LAST_UPDATE_ID, wdt, boot_time, uptime_seconds, loop_count, bot_triggered_close, close_requested_time, close_timeout_alerted, current_command_sender, close_requester
-    
+
     boot_time = time.ticks_ms()
     _udp_init()
-
     log("="*40)
     log("Garage door monitor starting")
     log(f"Version: {CURRENT_VERSION}")
     log(f"Free memory at boot: {gc.mem_free()}")
     log("="*40)
-    
+
     # Initialize watchdog timer
     if ENABLE_WATCHDOG:
         log(f"Enabling watchdog timer ({WATCHDOG_TIMEOUT_MS}ms)")
         wdt = WDT(timeout=WATCHDOG_TIMEOUT_MS)
-    
+
     # Retry WiFi connection until successful
     connect_wifi()
-    
-    # Connect MQTT
-    connect_mqtt()
-    
+
     # Send startup message
     send_telegram_message(f"Garage door bot is online!\nVersion: {CURRENT_VERSION}\n\nType 'help' for commands.")
 
     # Check for crash dumps from previous runs
     send_last_crashes()
-    
+
     # Check for updates on boot (optional)
     if CHECK_UPDATE_ON_BOOT:
         log("Checking for updates on boot...")
@@ -508,7 +490,7 @@ def main():
             send_telegram_message(f"Update available: {new_version}\nSend 'update' to install, or it will auto-update on next restart.")
         else:
             log("No updates available")
-    
+
     # Door monitoring state
     open_start_time = None
     last_alert_time = None
@@ -523,25 +505,22 @@ def main():
     last_poll_time = time.ticks_ms()
     last_heartbeat_time = time.ticks_ms()
     last_door_state = is_door_open()
-    
+
     log("Entering main loop")
-    
+
     while True:
         loop_count += 1
         current_time = time.ticks_ms()
-        
+
         # CRITICAL: Feed the watchdog
         if wdt:
             wdt.feed()
-        
+
         # Ensure WiFi is connected
         if not ensure_wifi():
             time.sleep(5)
             continue
-        
-        # Ensure MQTT is connected
-        ensure_mqtt()
-        
+
         # -------- Heartbeat --------
         if time.ticks_diff(current_time, last_heartbeat_time) >= HEARTBEAT_INTERVAL_SECONDS * 1000:
             uptime_seconds += time.ticks_diff(current_time, last_heartbeat_time) // 1000
@@ -550,31 +529,27 @@ def main():
             uptime_min = uptime_seconds // 60
             gc.collect()
             rssi = network.WLAN(network.STA_IF).status('rssi')
+            # IMPORTANT: If heartbeat or HEAP format changes, update ARCHITECTURE.md "Heartbeat Format" and LOG_SERVER_SETUP.md "Log Format"
             log(f"HEARTBEAT: door={door_state}, uptime={uptime_min}m, loops={loop_count}, mem={gc.mem_free()}, rssi={rssi}, http_ok={http_ok}, http_fail={http_fail}, sock_err={http_sock_err}")
+            # Machine-parseable telemetry line for long-term tracking on the log host
+            _udp_send(f"HEAP {uptime_min},{gc.mem_free()},{loop_count},{http_ok},{http_fail},{http_sock_err}")
 
-            # Publish heap data over MQTT for long-term tracking
-            if mqtt_client:
-                try:
-                    mqtt_client.publish("garage/heap", f"{uptime_min},{gc.mem_free()},{loop_count},{http_ok},{http_fail},{http_sock_err}")
-                except:
-                    pass
-        
         # -------- Poll Telegram for commands --------
         if time.ticks_diff(current_time, last_poll_time) >= POLL_INTERVAL_SECONDS * 1000:
             last_poll_time = current_time
-            
+
             updates = get_telegram_updates()
             for update in updates:
                 LAST_UPDATE_ID = update["update_id"]
-                
+
                 if "message" in update and "text" in update["message"]:
                     message_text = update["message"]["text"]
                     chat_id = update["message"]["chat"]["id"]
-                    
+
                     if str(chat_id) == str(TELEGRAM_CHAT_ID):
                         current_command_sender = update["message"].get("from", {}).get("username", "")
                         response = handle_command(message_text)
-                        
+
                         if response == "SILENCE":
                             notifications_muted = True
                             send_telegram_message("Alerts muted until door closes.")
@@ -582,15 +557,15 @@ def main():
                             send_telegram_message(response)
                     else:
                         log(f"Unauthorized chat: {chat_id}", "WARN")
-        
+
         # -------- Monitor door state --------
         door_open = is_door_open()
-        
+
         # Log state changes
         if door_open != last_door_state:
             log(f"Door state changed: {'OPEN' if door_open else 'CLOSED'}")
             last_door_state = door_open
-        
+
         if door_open:
             if open_start_time is None:
                 open_start_time = current_time
@@ -599,7 +574,7 @@ def main():
                 log("Door opened - starting timer")
             else:
                 elapsed_minutes = time.ticks_diff(current_time, open_start_time) / 60000
-                
+
                 should_alert = False
                 if last_alert_time is None and elapsed_minutes >= INITIAL_ALERT_MINUTES:
                     should_alert = True
@@ -607,7 +582,7 @@ def main():
                     minutes_since_alert = time.ticks_diff(current_time, last_alert_time) / 60000
                     if minutes_since_alert >= REPEAT_ALERT_MINUTES:
                         should_alert = True
-                
+
                 if should_alert and not notifications_muted:
                     mentions = " ".join(f"@{u}" for u in NOTIFY_USERNAMES)
                     message = f"{mentions} ALERT: Garage door has been open for {int(elapsed_minutes)} minutes!"
@@ -622,16 +597,13 @@ def main():
                     mention = f"@{close_requester} " if close_requester else ""
                     send_telegram_message(f"{mention}WARNING: Door did not close! It may be blocked.")
                     close_timeout_alerted = True
-
         else:
             if open_start_time is not None:
                 elapsed = time.ticks_diff(current_time, open_start_time) / 60000
                 log(f"Door closed after {elapsed:.1f} minutes")
-
                 if elapsed >= 1 and bot_triggered_close:
                     mention = f"@{close_requester} " if close_requester else ""
                     send_telegram_message(f"{mention}Door closed after {elapsed:.1f} minutes.")
-
             open_start_time = None
             last_alert_time = None
             notifications_muted = False
@@ -639,11 +611,14 @@ def main():
             close_requested_time = None
             close_timeout_alerted = False
             close_requester = None
-        
+
         time.sleep(0.5)
 
+
 # ============ CRASH DUMP ============
+# IMPORTANT: If crash dump behavior changes, update ARCHITECTURE.md "Crash Dumps" section
 MAX_CRASH_FILES = 5
+
 
 def _crash_files():
     """Return sorted list of crash-NN.log files on the filesystem."""
@@ -654,6 +629,7 @@ def _crash_files():
     files.sort()
     return files
 
+
 def save_crash(e):
     """Write crash traceback to a numbered file, rotating old ones."""
     try:
@@ -663,6 +639,7 @@ def save_crash(e):
         trace = buf.getvalue()
 
         existing = _crash_files()
+
         # Determine next number
         if existing:
             last_num = int(existing[-1].replace("crash-", "").replace(".log", ""))
@@ -681,11 +658,16 @@ def save_crash(e):
     except:
         pass
 
+
 def send_last_crashes():
-    """On boot, send any saved crash dumps to Telegram, then delete them."""
+    """On boot, send any saved crash dumps to Telegram. Files are never deleted here —
+    save_crash() handles rotation when MAX_CRASH_FILES is exceeded."""
     crash_files = _crash_files()
     if not crash_files:
+        log("No crash dumps from previous runs")
         return
+
+    log(f"Found {len(crash_files)} crash dump(s) on device")
     for fname in crash_files:
         try:
             with open(fname, "r") as f:
@@ -693,9 +675,9 @@ def send_last_crashes():
             if crash_data:
                 log(f"Crash dump ({fname}):\n{crash_data}", "ERROR")
                 send_telegram_message(f"PREV CRASH ({fname}):\n{crash_data[:500]}")
-            os.remove(fname)
         except Exception as e:
-            log(f"Failed to send crash dump {fname}: {e}", "WARN")
+            log(f"Failed to read crash dump {fname}: {e}", "WARN")
+
 
 # ============ ENTRY POINT ============
 if __name__ == "__main__":
