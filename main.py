@@ -25,11 +25,17 @@ CLOSE_TIMEOUT_SECONDS = 60  # Alert if door doesn't close within this many secon
 NOTIFY_USERNAMES = ["cryptograthor", "stock_phish", "Bibsky1"]  # Usernames to tag in group alerts (no @ prefix)
 LAST_UPDATE_ID = 0
 
+# Stale command protection: Telegram queues messages for up to 24h while the bot is offline.
+# Door-actuating commands older than this are refused instead of executed late.
+MAX_COMMAND_AGE_SECONDS = 60
+STALE_GUARDED_COMMANDS = ["open", "close", "update"]
+NTP_RESYNC_HOURS = 6
+
 # OTA Configuration
 GITHUB_USER = "doomdagadiggiedahdah"
 GITHUB_REPO = "garage-bot"
 GITHUB_BRANCH = "main"
-CURRENT_VERSION = "1.5.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
+CURRENT_VERSION = "1.6.0"  # IMPORTANT: Update this AND version.txt together — OTA compares this against the remote file
 CHECK_UPDATE_ON_BOOT = True  # Auto-check for updates on startup
 
 # Heartbeat interval (prints status even when idle)
@@ -76,6 +82,11 @@ close_requested_time = None
 close_timeout_alerted = False
 current_command_sender = None  # username of whoever sent the current command
 close_requester = None         # username of whoever triggered the last close
+clock_synced = False           # True once NTP has set the RTC (needed for stale-command check)
+last_ntp_sync_uptime = 0
+
+# MicroPython ports differ on epoch (ESP32 has historically used 2000-01-01); Telegram uses Unix time
+_EPOCH_OFFSET = 946684800 if time.gmtime(0)[0] == 2000 else 0
 
 
 # ============ LOGGING ============
@@ -155,6 +166,26 @@ def ensure_wifi():
         log("WiFi disconnected, reconnecting...", "WARN")
         return connect_wifi()
     return True
+
+
+# ============ CLOCK ============
+def sync_clock():
+    """Set the RTC from NTP so we can compare against Telegram message timestamps."""
+    global clock_synced, last_ntp_sync_uptime
+    try:
+        import ntptime
+        if wdt:
+            wdt.feed()
+        ntptime.settime()
+        clock_synced = True
+        last_ntp_sync_uptime = uptime_seconds
+        log(f"Clock synced via NTP: unix={now_unix()}")
+    except Exception as e:
+        log(f"NTP sync failed: {e}", "WARN")
+
+
+def now_unix():
+    return time.time() + _EPOCH_OFFSET
 
 
 # ============ OTA UPDATE FUNCTIONS ============
@@ -378,6 +409,62 @@ def get_telegram_updates():
         return []
 
 
+def flush_pending_updates():
+    """Discard every message Telegram queued while the bot was offline.
+
+    offset=-1 returns only the newest pending update and confirms (deletes) all
+    older ones; we record its id so the next poll confirms it too without running it.
+    Returns True on success — the caller must not poll for commands until this succeeds.
+    """
+    global LAST_UPDATE_ID, http_ok, http_fail, http_sock_err
+    response = None
+    try:
+        if wdt:
+            wdt.feed()
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset=-1&timeout=0"
+        response = urequests.get(url, timeout=10)
+        data = response.json()
+        response.close()
+        response = None
+        gc.collect()
+        http_ok += 1
+        if not data.get("ok"):
+            log(f"Backlog flush rejected: {data}", "WARN")
+            return False
+        result = data.get("result") or []
+        if result:
+            LAST_UPDATE_ID = result[-1]["update_id"]
+            log(f"Discarded queued Telegram backlog (last update_id={LAST_UPDATE_ID})")
+        else:
+            log("No queued Telegram backlog")
+        return True
+    except Exception as e:
+        http_fail += 1
+        if isinstance(e, OSError):
+            http_sock_err += 1
+        log(f"Backlog flush failed: {e}", "WARN")
+        if response:
+            try:
+                response.close()
+            except:
+                pass
+        gc.collect()
+        return False
+
+
+def stale_command_age(message, cmd):
+    """Return the message age in seconds if this is a guarded command that's too old, else None."""
+    if not clock_synced:
+        return None  # can't judge age; boot-time backlog flush still protects restarts
+    if cmd.lstrip("/") not in STALE_GUARDED_COMMANDS:
+        return None
+    sent = message.get("date")
+    if not sent:
+        return None
+    age = now_unix() - sent
+    return age if age > MAX_COMMAND_AGE_SECONDS else None
+
+
 # ============ DOOR FUNCTIONS ============
 def is_door_open():
     return sensor.value() == 1
@@ -474,6 +561,11 @@ def main():
 
     # Retry WiFi connection until successful
     connect_wifi()
+    sync_clock()
+
+    # Discard commands queued while offline BEFORE announcing we're online,
+    # so nothing sent in response to the startup message gets thrown away
+    backlog_flushed = flush_pending_updates()
 
     # Send startup message
     send_telegram_message(f"Garage door bot is online!\nVersion: {CURRENT_VERSION}\n\nType 'help' for commands.")
@@ -534,11 +626,20 @@ def main():
             # Machine-parseable telemetry line for long-term tracking on the log host
             _udp_send(f"HEAP {uptime_min},{gc.mem_free()},{loop_count},{http_ok},{http_fail},{http_sock_err}")
 
+            # Retry NTP every heartbeat until it works, then periodically to correct RTC drift
+            if not clock_synced or uptime_seconds - last_ntp_sync_uptime >= NTP_RESYNC_HOURS * 3600:
+                sync_clock()
+
         # -------- Poll Telegram for commands --------
         if time.ticks_diff(current_time, last_poll_time) >= POLL_INTERVAL_SECONDS * 1000:
             last_poll_time = current_time
 
-            updates = get_telegram_updates()
+            # Never execute commands until the offline backlog has been discarded
+            if not backlog_flushed:
+                backlog_flushed = flush_pending_updates()
+                updates = []
+            else:
+                updates = get_telegram_updates()
             for update in updates:
                 LAST_UPDATE_ID = update["update_id"]
 
@@ -548,6 +649,13 @@ def main():
 
                     if str(chat_id) == str(TELEGRAM_CHAT_ID):
                         current_command_sender = update["message"].get("from", {}).get("username", "")
+                        cmd = message_text.lower().strip().split("@")[0]
+                        age = stale_command_age(update["message"], cmd)
+                        if age is not None:
+                            log(f"Ignoring stale command '{cmd}' ({age}s old)", "WARN")
+                            mention = f"@{current_command_sender} " if current_command_sender else ""
+                            send_telegram_message(f"{mention}Ignored '{cmd}' — it was sent {age // 60}m {age % 60}s ago while I was offline. Send it again if you still want it.")
+                            continue
                         response = handle_command(message_text)
 
                         if response == "SILENCE":
