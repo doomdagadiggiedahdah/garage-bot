@@ -2,7 +2,7 @@
 
 This document describes how to set up the log-receiving server for the garage-bot ESP32. The ESP32 sends all log output as UDP packets to a server on the LAN. Any Linux machine on the same network can act as the log server.
 
-<!-- IMPORTANT: The log server IP is hardcoded in main.py (UDP_LOG_HOST). If the server changes, update main.py and ARCHITECTURE.md to match. -->
+<!-- The Rust firmware takes the log server address from NVS (`log_addr`); see step 4. -->
 
 ## What the Log Server Does
 

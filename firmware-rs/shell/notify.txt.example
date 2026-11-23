@@ -1,0 +1,4 @@
+# Telegram usernames to mention in alerts: one per line, no @.
+# Copy this file to notify.txt (untracked) and put the real usernames there.
+example_user_one
+example_user_two

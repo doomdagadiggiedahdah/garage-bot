@@ -1,6 +1,6 @@
 # Formal verification of the GarageBot Rust rewrite
 
-GarageBot is being rewritten from MicroPython (`main.py`) to Rust. The decision logic of the
+GarageBot is being rewritten from MicroPython (`main.py`, now only in git history at commit `2341d02`) to Rust. The decision logic of the
 Rust version is proven with [Kani](https://model-checking.github.io/kani/), a model checker
 that checks a property for every possible input, not for a set of examples. This page says what
 was proven, how the work was organised, what came out, and what is still open.
@@ -98,7 +98,7 @@ The lessons are in [FV_LESSONS.md](../FV_LESSONS.md). The short version:
   checks did not allow for that. The fix is in the checks, not in the logic: let them accept
   "or a deaf-reboot happened", and add a check that such a reboot only happens after the full
   timeout. That would give 154 of 154, plus the new check.
-- **The 6 known bugs are still in the Python version** (`main.py`); the Rust design fixes
+- **The 6 known bugs are still in the Python version** (`main.py` at commit `2341d02`); the Rust design fixes
   them. They are: a WiFi connect that can hang forever; a flush timeout that drops a fresh
   command; a stale `/open` that runs before the clock is synced (the worst one); negative
   minutes in the open-door alert after 7.57 days; uptime that drifts; and a fresh command behind

@@ -1,6 +1,6 @@
 # GarageBot verifier spec
 
-Written by the VERIFIER before reading CONTRACTS.md. Sources: `garage-bot/main.py` v1.6.0,
+Written by the VERIFIER before reading CONTRACTS.md. Sources: `garage-bot/main.py` v1.6.0 (git history, commit `2341d02`),
 `ARCHITECTURE.md`, and the earlier `garagebot-kani/SPEC.md`. It is derived from what the bot is
 FOR, not from what main.py or the Rust port happens to do.
 

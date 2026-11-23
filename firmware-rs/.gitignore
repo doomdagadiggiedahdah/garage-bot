@@ -8,3 +8,5 @@ shell/out/
 shell/release-*/
 # local-only: the build host for build_and_flash.sh (user@host)
 shell/.build-host
+# local-only: Telegram usernames to mention (see shell/notify.txt.example)
+shell/notify.txt

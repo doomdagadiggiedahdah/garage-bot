@@ -2,3 +2,5 @@ secrets.py
 *.bin
 ARCHITECTURE.md
 TODO.md
+# serial boot logs from the board: keep local
+flash-backup/

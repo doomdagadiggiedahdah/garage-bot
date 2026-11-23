@@ -4,7 +4,7 @@ The ESP32 firmware for the proven `garagebot-logic` core. `src/main.rs` is the
 shell from TRUSTED.md T8: one loop that feeds the watchdog, calls `bot_step`
 once and does the one op it returns. Every decision is in the proven core.
 
-- Pins as in main.py: reed switch GPIO32 (pull-up, high = open), relay GPIO14 (500 ms press).
+- Pins as in the old MicroPython `main.py` (git history, commit `2341d02`): reed switch GPIO32 (pull-up, high = open), relay GPIO14 (500 ms press).
 - Telegram over HTTPS, with the server certificate checked against the ESP-IDF CA bundle.
 - UDP log lines to `log_addr` (default the LAN log server on port 5005, same format as main.py).
 - Watchdog: 300 s, panic = reset, fed only at the top of the loop. A WiFi connect
@@ -41,7 +41,8 @@ from `EE=user@host` or from the untracked file `shell/.build-host`.
 2. The script copies back `out/bootloader.bin`, `out/partition-table.bin`,
    `out/garagebot-app.bin` and `out/garagebot-manifest.txt`, and refuses to go on
    if the app contains a `GB_*` name or a bot-token-shaped string.
-3. It makes the NVS image here on the laptop from `secrets.py` (NOTIFY from main.py)
+3. It makes the NVS image here on the laptop from `secrets.py` and the mention list in `notify.txt`
+   (untracked; copy `notify.txt.example`)
    with `esp_idf_nvs_partition_gen`, into `$XDG_RUNTIME_DIR/garagebot-nvs/nvs.bin`.
 4. It prints the esptool commands. It never flashes by itself.
 

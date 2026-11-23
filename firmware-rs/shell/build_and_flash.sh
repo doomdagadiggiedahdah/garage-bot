@@ -4,16 +4,20 @@
 #
 #   ./firmware-rs/shell/build_and_flash.sh           # secrets from <garage-bot>/secrets.py
 #   SECRETS=/path/fake_secrets.py ./build_and_flash.sh   # e.g. synthetic test values
+#   NOTIFY=/path/notify.txt ./build_and_flash.sh         # another list of usernames to mention
 #
 # Secrets never leave this machine: eE gets no input at all, and the NVS image is
 # written to $XDG_RUNTIME_DIR (tmpfs, mode 700), never into the repo.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-GB="$(dirname "$(dirname "$HERE")")"    # the garage-bot folder (secrets.py, main.py)
+GB="$(dirname "$(dirname "$HERE")")"    # the garage-bot folder (secrets.py)
 # Build host (user@host): from $EE, else from the untracked file .build-host next to this script.
 EE="${EE:-$(cat "$HERE/.build-host" 2>/dev/null || true)}"
 [ -n "$EE" ] || { echo "set EE=user@build-host, or write it to $HERE/.build-host" >&2; exit 1; }
 SECRETS="${SECRETS:-$GB/secrets.py}"
+# Usernames to mention in alerts: one per line, no @ (untracked; see notify.txt.example).
+NOTIFY="${NOTIFY:-$HERE/notify.txt}"
+[ -f "$NOTIFY" ] || { echo "missing $NOTIFY: copy $HERE/notify.txt.example to it and list the Telegram usernames to mention" >&2; exit 1; }
 OUT="$HERE/out"                          # secret-free files only
 NVSDIR="${XDG_RUNTIME_DIR:-/tmp}/garagebot-nvs"
 umask 077
@@ -32,17 +36,23 @@ if grep -a -q -E 'GB_WIFI_SSID|GB_WIFI_PASSWORD|GB_TELEGRAM_BOT_TOKEN|GB_TELEGRA
 fi
 echo "app is secret-free (no GB_* names, no token-shaped string)"
 
-# 3. NVS image from secrets.py, locally. NOTIFY comes from main.py's NOTIFY_USERNAMES.
+# 3. NVS image from secrets.py, locally. The mention list comes from notify.txt.
 CSV="$NVSDIR/nvs.csv"
 trap 'rm -f "$CSV"' EXIT
-python3 - "$SECRETS" "$GB/main.py" "$CSV" <<'PY'
-import ast, csv, runpy, sys
-sec_path, main_py, out = sys.argv[1:]
+python3 - "$SECRETS" "$NOTIFY" "$CSV" <<'PY'
+import csv, re, runpy, sys
+sec_path, notify_path, out = sys.argv[1:]
 s = runpy.run_path(sec_path)
 notify = []
-for n in ast.walk(ast.parse(open(main_py).read())):
-    if isinstance(n, ast.Assign) and any(getattr(t, "id", None) == "NOTIFY_USERNAMES" for t in n.targets):
-        notify = ast.literal_eval(n.value)
+for line in open(notify_path):
+    u = line.split("#")[0].strip().lstrip("@")
+    if not u:
+        continue
+    if not re.fullmatch(r"[A-Za-z0-9_]{1,32}", u):
+        sys.exit(f"{notify_path}: not a Telegram username: {u!r}")
+    notify.append(u)
+if not notify:
+    sys.exit(f"{notify_path}: no usernames in it")
 vals = {
     "wifi_ssid": s["SSID"],
     "wifi_pass": s["PASSWORD"],
@@ -77,5 +87,5 @@ Watch it boot:
   uvx --from pyserial pyserial-miniterm /dev/ttyUSB0 115200
 Back to MicroPython: erase_flash, then
   uvx esptool --chip esp32 -p /dev/ttyUSB0 write_flash 0x1000 "$GB/ESP32_GENERIC-20250911-v1.26.1.bin"
-  and upload main.py + secrets.py again.
+  and upload main.py (from commit 2341d02) + secrets.py again.
 MSG

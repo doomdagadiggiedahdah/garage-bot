@@ -17,6 +17,7 @@ The firmware is written in Rust. Its decision logic is proven with the Kani mode
 | `tools/proofq/` | The job queue that runs the Kani proofs. |
 | `udp_logger.py`, `LOG_SERVER_SETUP.md` | The UDP log receiver the board sends its log lines to (port 5005). |
 | `secrets.py.template` | Template for the untracked `secrets.py` (WiFi and Telegram values). |
+| `firmware-rs/shell/notify.txt.example` | Template for the untracked `notify.txt`: the Telegram usernames to mention in alerts. |
 
 ## Build and flash
 
@@ -26,7 +27,7 @@ The firmware is written in Rust. Its decision logic is proven with the Kani mode
 
 The script builds and signs the app on a build host (`EE=user@host`, or the untracked file
 `firmware-rs/shell/.build-host`), checks that the image holds no secrets, makes the secrets image
-locally from `secrets.py`, and prints the `esptool` commands. It never flashes by itself. Secrets
+locally from `secrets.py` and `firmware-rs/shell/notify.txt`, and prints the `esptool` commands. It never flashes by itself. Secrets
 live in the board's NVS partition, not in the app image. No eFuse is burned, so USB flashing
 always works.
 
@@ -46,6 +47,6 @@ host, and create the GitHub release `v<version>` with `garagebot-app.bin` and
 
 ## The Python version
 
-The first GarageBot was MicroPython. Its last version is commit `2341d02`. `main.py` is still in
-the tree for one reason: `build_and_flash.sh` reads the `NOTIFY_USERNAMES` list from it. It is not
-what runs on the board.
+The first GarageBot was MicroPython (`main.py`). It is no longer in the tree; its last version is
+in git history at commit `2341d02`. Specs and proof comments that cite `main.py` line numbers
+refer to that commit.
