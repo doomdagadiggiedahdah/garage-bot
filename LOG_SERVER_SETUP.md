@@ -57,7 +57,12 @@ tail ~/garage-bot/garage.log
 
 ### 4. Point the ESP32 to the new server
 
-The log server IP is **hardcoded** in `main.py` as `UDP_LOG_HOST`. To change it:
+Rust firmware: the address is the NVS key `log_addr` (set `LOG_ADDR = "host:port"` in
+`secrets.py`, then rebuild the NVS image with `firmware-rs/shell/build_and_flash.sh`); without
+it the default in `firmware-rs/shell/src/main.rs` is used.
+
+Old MicroPython firmware (history, commit `2341d02`): the IP was hardcoded in `main.py` as
+`UDP_LOG_HOST`, changed like this:
 
 1. Edit `UDP_LOG_HOST` in `main.py` to the new server's LAN IP
 2. Update `ARCHITECTURE.md` (Machines table + UDP section)

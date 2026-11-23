@@ -67,8 +67,9 @@ SHA-256 and embedded version match the manifest. The new image runs on probation
 marks itself valid after its first good Telegram poll. If it resets before that, the
 bootloader goes back to the old slot.
 
-These are release assets; the MicroPython OTA reads `version.txt` and `main.py` from
-the main branch and is not affected.
+These are release assets. The old MicroPython OTA read `version.txt` and `main.py` from
+the main branch; `version.txt` was removed from main after commit `2341d02`, so a board
+still on MicroPython no longer updates itself.
 
 To publish a release (by hand): bump `version` in `Cargo.toml`, run `remote_build.sh`
 on eE, create GitHub release `v<version>` with `target/ota-out/garagebot-app.bin` and
