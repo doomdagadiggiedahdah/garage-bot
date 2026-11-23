@@ -1,0 +1,31 @@
+[package]
+name = "garagebot-logic"
+version = "2.0.0"
+edition = "2021"
+description = "GarageBot decision logic: pure, no_std, Kani-proven"
+publish = false
+
+[lib]
+name = "garagebot_logic"
+
+[features]
+# compiles spec.rs into normal builds (difftest oracle only; never the firmware)
+spec = []
+
+[lints.rust]
+unexpected_cfgs = { level = "allow" }
+
+[profile.release]
+opt-level = "s"
+
+# Loop limits that hold for every proof: the byte comparison behind `==` on
+# arrays and slices (at most 512 bytes), and the key copy and comparisons of the
+# stand-ins. Kani's extra reachability checks are off: they only tell "unreachable"
+# from "holds" in the report, and cost most of the time and memory of a proof.
+# The kani::cover! checks of the properties are not affected.
+[package.metadata.kani.unstable]
+unstable-options = true
+
+[package.metadata.kani.flags]
+no-assertion-reach-checks = true
+cbmc-args = ["--unwindset", "memcmp.0:514,gb_text_eq.0:34,gb_sk_fill.0:514,gb_words_eq.0:34"]

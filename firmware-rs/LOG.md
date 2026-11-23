@@ -1,0 +1,304 @@
+- 2026-11-22T09:20:27Z | SUMMARY | ran=1 cached=59 failed=1 wall=1.2s | passing=0/60 | root 019ca07efa62f4e7
+- 2026-11-22T09:20:49Z | RUN | prop_boot | PASS | 12.1s | key a9266d318567
+- 2026-11-22T09:20:49Z | SUMMARY | ran=1 cached=59 failed=0 wall=12.1s | passing=0/60 | root 019ca07efa62f4e7
+- 2026-11-22T09:22:23Z | RUN | prop_always_responds | PASS | 90.7s | key 663e14d50418
+- 2026-11-22T09:42:23Z | RUN | prop_anchor_is_sound | FAIL | 1200.0s | key 857787df0049
+- 2026-11-22T09:42:51Z | RUN | prop_close_alert | PASS | 27.5s | key e412299d3d55
+- 2026-11-22T09:43:04Z | RUN | prop_closed_door_is_quiet | PASS | 13.1s | key b1cde3b2888a
+- 2026-11-22T09:43:17Z | RUN | prop_failed_poll_loses_nothing | PASS | 12.8s | key bf7334352d11
+- 2026-11-22T09:44:00Z | RUN | prop_never_twice | PASS | 42.9s | key 21faf7f4af0d
+- 2026-11-22T09:44:19Z | RUN | prop_next_update_waits_for_reply | PASS | 19.6s | key b4dbd3ffcde2
+- 2026-11-22T09:44:30Z | RUN | prop_no_clock_no_press | PASS | 11.2s | key 9a2158c83ef2
+- 2026-11-22T10:04:30Z | RUN | prop_open_alert_schedule | FAIL | 1200.1s | key de2f6590c1f3
+- 2026-11-22T10:04:47Z | RUN | prop_reply_exactly_once | PASS | 17.1s | key af7557182dec
+- 2026-11-22T10:24:48Z | RUN | prop_stale_never_executes | FAIL | 1200.1s | key 4a7ed245e037
+- 2026-11-22T10:24:57Z | RUN | prop_unauthorized_never_acts | PASS | 9.8s | key 3c0a06c7c127
+- 2026-11-22T10:25:30Z | RUN | prop_update_keeps_batch | PASS | 32.1s | key 21dfcbbfc2ae
+- 2026-11-22T10:26:25Z | RUN | prop_uptime_no_drift | PASS | 55.4s | key 6bababe35655
+- 2026-11-22T10:26:43Z | RUN | prop_watchdog | PASS | 18.5s | key 8a5d0b07c239
+- 2026-11-22T10:27:00Z | RUN | prop_wifi_never_blocks | PASS | 16.7s | key 518b74344ae9
+- 2026-11-22T10:27:00Z | SUMMARY | ran=16 cached=44 failed=3 wall=3967.6s | passing=0/60 | root 019ca07efa62f4e7
+- 2026-11-22T20:03:40Z | RUN | prop_anchor_is_sound | PASS | 121.9s | key 3fb24ed4c3de
+- 2026-11-22T20:03:56Z | RUN | prop_open_alert_minutes | PASS | 16.6s | key 8a81f4d2a4fe
+- 2026-11-22T20:04:22Z | RUN | prop_open_alert_schedule | PASS | 25.8s | key 62f30a65cc9a
+- 2026-11-22T20:04:52Z | RUN | prop_stale_never_executes | PASS | 29.5s | key 55ed1fb88100
+- 2026-11-22T20:04:52Z | SUMMARY | ran=4 cached=14 skipped=43 failed=0 wall=193.9s | passing=18/61 sound=0/61 | root 019ca07efa62f4e7
+- 2026-11-22T20:07:08Z | RUN | prop_anchor_is_sound | PASS | 110.0s | key fcd803765688
+- 2026-11-22T20:07:44Z | RUN | prop_clock_only_from_poll | PASS | 35.5s | key 30edaec29368
+- 2026-11-22T20:07:44Z | SUMMARY | ran=2 cached=17 skipped=43 failed=0 wall=145.5s | passing=19/62 sound=0/62 | root 019ca07efa62f4e7
+- 2026-11-22T20:18:12Z | RUN | prop_always_responds | PASS | 79.9s | key 58523cf2bcb5
+- 2026-11-22T20:19:52Z | RUN | prop_anchor_is_sound | PASS | 100.0s | key 7d1c944a0730
+- 2026-11-22T20:20:00Z | RUN | prop_boot | PASS | 8.3s | key 2e5a4d36ad8a
+- 2026-11-22T20:20:36Z | RUN | prop_clock_only_from_poll | PASS | 36.3s | key d0ce5eabaaa0
+- 2026-11-22T20:21:14Z | RUN | prop_close_alert | PASS | 37.9s | key 74874c0e0815
+- 2026-11-22T20:21:33Z | RUN | prop_closed_door_is_quiet | PASS | 19.1s | key d7642ae07d33
+- 2026-11-22T20:21:53Z | RUN | prop_failed_poll_loses_nothing | PASS | 19.5s | key 7ec4e9336201
+- 2026-11-22T20:22:58Z | RUN | prop_never_twice | PASS | 64.8s | key 7fed1e8ec11f
+- 2026-11-22T20:23:28Z | RUN | prop_next_update_waits_for_reply | PASS | 30.7s | key 8d7dfcd836a0
+- 2026-11-22T20:23:46Z | RUN | prop_no_clock_no_press | PASS | 17.5s | key 36eb2e223248
+- 2026-11-22T20:24:09Z | RUN | prop_open_alert_minutes | PASS | 22.7s | key a9c16c509457
+- 2026-11-22T20:24:43Z | RUN | prop_open_alert_schedule | PASS | 33.9s | key 726eb185b81c
+- 2026-11-22T20:25:08Z | RUN | prop_reply_exactly_once | PASS | 25.5s | key 3eed29202f04
+- 2026-11-22T20:25:45Z | RUN | prop_stale_never_executes | PASS | 37.1s | key 262810ff4509
+- 2026-11-22T20:26:01Z | RUN | prop_unauthorized_never_acts | PASS | 15.9s | key 213a47b8a7f6
+- 2026-11-22T20:26:55Z | RUN | prop_update_keeps_batch | PASS | 53.9s | key 06a858bc45ca
+- 2026-11-22T20:28:03Z | RUN | prop_uptime_no_drift | PASS | 68.4s | key 409ad94cf9ee
+- 2026-11-22T20:28:29Z | RUN | prop_watchdog | PASS | 25.5s | key 0b830cbfd317
+- 2026-11-22T20:28:52Z | RUN | prop_wifi_never_blocks | PASS | 23.0s | key 9e7b90b6af16
+- 2026-11-22T20:28:52Z | SUMMARY | ran=19 cached=0 skipped=43 failed=0 wall=720.0s | passing=19/62 sound=0/62 | root 019ca07efa62f4e7
+- 2026-11-22T21:04:27Z | RUN | prop_always_responds | PASS | 1026.8s | key 6eff8d7971d2
+- 2026-11-22T21:06:34Z | RUN | prop_anchor_is_sound | PASS | 126.9s | key 31587eaff7a2
+- 2026-11-22T21:06:42Z | RUN | prop_boot | PASS | 8.3s | key 326397dd0640
+- 2026-11-22T21:07:19Z | RUN | prop_clock_only_from_poll | PASS | 37.1s | key 4c4e18224216
+- 2026-11-22T21:08:06Z | RUN | prop_close_alert | PASS | 47.5s | key edb94df2802c
+- 2026-11-22T21:08:35Z | RUN | prop_closed_door_is_quiet | PASS | 28.8s | key a30201c60d1e
+- 2026-11-22T21:08:58Z | RUN | prop_failed_poll_loses_nothing | PASS | 22.4s | key c6d82a1240dc
+- 2026-11-22T21:10:13Z | RUN | prop_never_twice | PASS | 75.7s | key a0c24a3081f0
+- 2026-11-22T21:10:40Z | RUN | prop_next_update_waits_for_reply | PASS | 26.8s | key d45a6d07f4f0
+- 2026-11-22T21:10:55Z | RUN | prop_no_clock_no_press | PASS | 14.7s | key 4146cab06378
+- 2026-11-22T21:11:14Z | RUN | prop_open_alert_minutes | PASS | 19.4s | key 96020082cb72
+- 2026-11-22T21:11:41Z | RUN | prop_open_alert_schedule | PASS | 26.3s | key 738db816f988
+- 2026-11-22T21:12:01Z | RUN | prop_reply_exactly_once | PASS | 20.3s | key 427b59414153
+- 2026-11-22T21:12:31Z | RUN | prop_stale_never_executes | PASS | 29.9s | key 366a4387f3af
+- 2026-11-22T21:12:43Z | RUN | prop_unauthorized_never_acts | PASS | 12.3s | key 7d0f2be48df5
+- 2026-11-22T21:13:21Z | RUN | prop_update_keeps_batch | PASS | 38.2s | key e4d89d4baa6e
+- 2026-11-22T21:14:17Z | RUN | prop_uptime_no_drift | PASS | 55.9s | key 9ee9cf5d8385
+- 2026-11-22T21:14:38Z | RUN | prop_watchdog | PASS | 21.4s | key 710ea84b9550
+- 2026-11-22T21:14:56Z | RUN | prop_wifi_never_blocks | PASS | 17.4s | key 84bbd066574f
+- 2026-11-22T21:14:56Z | SUMMARY | ran=19 cached=0 skipped=47 failed=0 wall=1656.0s | passing=19/66 sound=0/66 | root 019ca07efa62f4e7
+- 2026-11-22T21:15:17Z | RUN | lemma_dec_index | PASS | 21.4s | key 93bf393b29d7
+- 2026-11-22T21:15:20Z | RUN | lemma_div10_facts | PASS | 2.2s | key 0ad0cde41f58
+- 2026-11-22T21:15:20Z | SUMMARY | ran=2 cached=19 skipped=45 failed=0 wall=23.6s | passing=21/66 sound=2/66 | root b0e8be3e27b6c3a0
+- 2026-11-23T01:02:41Z | RUN | prop_always_responds | PASS | 29.6s | key 069d2d15bb34
+- 2026-11-23T01:05:07Z | RUN | prop_anchor_is_sound | PASS | 145.4s | key 063b5bba9926
+- 2026-11-23T01:05:15Z | RUN | prop_boot | PASS | 8.0s | key b337ca4a0c53
+- 2026-11-23T01:05:25Z | RUN | prop_clock_back_reboots | PASS | 10.3s | key e867ee0919e4
+- 2026-11-23T01:05:35Z | RUN | prop_clock_only_from_poll | PASS | 9.5s | key 7629749ca6bc
+- 2026-11-23T01:05:52Z | RUN | prop_close_alert | PASS | 17.1s | key 18a9c4f3a807
+- 2026-11-23T01:06:03Z | RUN | prop_closed_door_is_quiet | PASS | 10.8s | key 4c5c690ca7ac
+- 2026-11-23T01:06:13Z | RUN | prop_deaf_reboots | PASS | 9.9s | key da81a66abead
+- 2026-11-23T01:06:22Z | RUN | prop_failed_poll_loses_nothing | PASS | 9.5s | key 03155f834296
+- 2026-11-23T01:06:37Z | RUN | prop_never_twice | PASS | 15.3s | key b97dd1d3c4e2
+- 2026-11-23T01:06:50Z | RUN | prop_next_update_waits_for_reply | PASS | 12.3s | key 56355fae3be0
+- 2026-11-23T01:06:58Z | RUN | prop_no_clock_no_press | PASS | 8.3s | key 11cd75f5199a
+- 2026-11-23T01:07:08Z | RUN | prop_open_alert_minutes | PASS | 9.9s | key 5d79dab2da0a
+- 2026-11-23T01:07:19Z | RUN | prop_open_alert_schedule | PASS | 11.5s | key caaa50b8bf40
+- 2026-11-23T01:07:29Z | RUN | prop_reply_exactly_once | PASS | 9.5s | key 41c7c7e7b2eb
+- 2026-11-23T01:07:43Z | RUN | prop_send_retry | PASS | 14.3s | key afc2d049d661
+- 2026-11-23T01:07:50Z | RUN | prop_stale_never_executes | PASS | 6.7s | key 0aeb1916e32e
+- 2026-11-23T01:07:57Z | RUN | prop_unauthorized_never_acts | PASS | 6.7s | key 1e760fc68ecf
+- 2026-11-23T01:08:05Z | RUN | prop_update_keeps_batch | PASS | 8.6s | key ea44346ab003
+- 2026-11-23T01:08:41Z | RUN | prop_uptime_no_drift | PASS | 35.5s | key 1d629192c3da
+- 2026-11-23T01:08:50Z | RUN | prop_watchdog | PASS | 9.5s | key ebaf4c23fa49
+- 2026-11-23T01:08:57Z | RUN | prop_wifi_never_blocks | PASS | 7.1s | key c62adb0e2049
+- 2026-11-23T01:08:57Z | SUMMARY | ran=22 cached=0 skipped=74 failed=0 wall=405.5s | passing=22/96 sound=0/96 | root 019ca07efa62f4e7
+- 2026-11-23T01:09:15Z | RUN | lemma_dec_index | PASS | 17.8s | key a82982face85
+- 2026-11-23T01:09:19Z | RUN | lemma_div10_facts | PASS | 3.9s | key eb59c4936613
+- 2026-11-23T01:09:23Z | RUN | lemma_json_escape_len | PASS | 3.9s | key fd7d88cbc3bf
+- 2026-11-23T01:09:28Z | RUN | lemma_parse_u64_18 | PASS | 5.4s | key fd5806dddf34
+- 2026-11-23T01:09:44Z | RUN | lemma_text_eq | PASS | 15.9s | key e64b5558c8bb
+- 2026-11-23T01:09:44Z | SUMMARY | ran=5 cached=22 skipped=69 failed=0 wall=46.9s | passing=27/96 sound=5/96 | root 231bde790b83dac8
+- 2026-11-23T02:17:17Z | RUN | contract_boot_bound | PASS | 186.94s | key ba062a7f8243 | proofq j0910 local
+- 2026-11-23T02:17:17Z | RUN | contract_bot_feed | PASS | 319.23s | key 3e2eaed42c79 | proofq j0902 local
+- 2026-11-23T02:17:17Z | RUN | contract_bot_http_result | PASS | 62.93s | key aac30033cdcd | proofq j0920 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_bot_next_update | PASS | 317.85s | key 5598f8fdf640 | proofq j0905 local
+- 2026-11-23T02:17:17Z | RUN | contract_bot_poll_done | PASS | 165.41s | key 5595053ae10b | proofq j0909 local
+- 2026-11-23T02:17:17Z | RUN | contract_bot_send_done | PASS | 82.71s | key 2223bd24c3a4 | proofq j0917 local
+- 2026-11-23T02:17:17Z | RUN | contract_bot_step | PASS | 124.8s | key f0be665967a9 | proofq j0912 local
+- 2026-11-23T02:17:17Z | RUN | contract_classify_key | PASS | 10.26s | key a6ed97ac4f82 | proofq j0970 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_close_timeout_due | PASS | 5.41s | key 0e68c47e38a0 | proofq j0984 local
+- 2026-11-23T02:17:17Z | RUN | contract_closed_notice | PASS | 11.93s | key 499e6ec4f3af | proofq j0962 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_deaf | PASS | 4.9s | key 9579d1976070 | proofq j0985 local
+- 2026-11-23T02:17:17Z | RUN | contract_dec | PASS | 52.83s | key 72d5eaa0d058 | proofq j0921 local
+- 2026-11-23T02:17:17Z | RUN | contract_decide | PASS | 6.19s | key 9e0c4fcff32a | proofq j0981 local
+- 2026-11-23T02:17:17Z | RUN | contract_div10 | PASS | 44.18s | key 49908c304334 | proofq j0926 local
+- 2026-11-23T02:17:17Z | RUN | contract_div60 | PASS | 108.54s | key 33684070996a | proofq j0914 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_door_tick | PASS | 21.22s | key 529e9d45b52c | proofq j0942 local
+- 2026-11-23T02:17:17Z | RUN | contract_inbox_pop | PASS | 72.84s | key 4be511ecb2e4 | proofq j0918 local
+- 2026-11-23T02:17:17Z | RUN | contract_inbox_push | PASS | 79.86s | key fb69d80bc2dd | proofq j0919 local
+- 2026-11-23T02:17:17Z | RUN | contract_interval_due | PASS | 4.78s | key dd88a52dd6de | proofq j0983 local
+- 2026-11-23T02:17:17Z | RUN | contract_json_escape | PASS | 5.15s | key d9194ee8cdad | proofq j0987 local
+- 2026-11-23T02:17:17Z | RUN | contract_judge_age | PASS | 83.29s | key 3f1f8e81070a | proofq j0916 local
+- 2026-11-23T02:17:17Z | RUN | contract_lex_step | PASS | 8.83s | key 2412fd3175ab | proofq j0979 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_make_anchor | PASS | 84.11s | key eba07dd2f6a7 | proofq j0915 local
+- 2026-11-23T02:17:17Z | RUN | contract_name_from | PASS | 11.97s | key a73e42e7d26b | proofq j0969 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_on_poll | PASS | 18.6s | key c745272adfe3 | proofq j0900 local
+- 2026-11-23T02:17:17Z | RUN | contract_on_update | PASS | 18.26s | key 26cb9a367a0c | proofq j0948 local
+- 2026-11-23T02:17:17Z | RUN | contract_op_budget_ms | PASS | 6.19s | key 8b81ba152999 | proofq j0982 local
+- 2026-11-23T02:17:17Z | RUN | contract_op_done | PASS | 15.48s | key b6853ec4a4f5 | proofq j0954 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_open_alert_due | PASS | 5.34s | key 8011d575345a | proofq j0988 local
+- 2026-11-23T02:17:17Z | RUN | contract_overrun | PASS | 6.67s | key a16fea3d689a | proofq j0990 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_parse_command | PASS | 49.15s | key 27158a755023 | proofq j0928 local
+- 2026-11-23T02:17:17Z | RUN | contract_parse_http_date | PASS | 34.6s | key 125bc65c8b6e | proofq j0929 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_parse_i64 | PASS | 18.23s | key 40dc07fa323c | proofq j0946 local
+- 2026-11-23T02:17:17Z | RUN | contract_parse_u64 | PASS | 29.72s | key b060b20d3b71 | proofq j0934 local
+- 2026-11-23T02:17:17Z | RUN | contract_pick_op | PASS | 21.55s | key cffdd9c816f6 | proofq j0898 local
+- 2026-11-23T02:17:17Z | RUN | contract_push_ignored | PASS | 21.13s | key b6e71075351e | proofq j0950 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_push_mention | PASS | 27.13s | key 4536d360ce23 | proofq j0940 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_queue_door_events | PASS | 9.15s | key f250c5fd1116 | proofq j0966 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_closed_after | PASS | 22.55s | key ae5c40b16ca0 | proofq j0944 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_diag | PASS | 55.76s | key 68b0814208cb | proofq j0925 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_render_heap | PASS | 21.05s | key bf27c859e73d | proofq j0943 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_heartbeat | PASS | 31.97s | key 15a04d7cf0d6 | proofq j0935 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_log | PASS | 30.23s | key 61067b7673db | proofq j0939 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_msg | PASS | 102.62s | key 03a1e23e8c39 | proofq j0913 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_poll_path | PASS | 13.37s | key 3c49a9fac44f | proofq j0958 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_reply | PASS | 248.43s | key e6f1f60d2bef | proofq j0906 local
+- 2026-11-23T02:17:17Z | RUN | contract_render_send_body | PASS | 725.81s | key c2173b8e244c | proofq j0903 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_scan_byte | PASS | 31.06s | key 8e52bb5c3dac | proofq j0936 worker-b
+- 2026-11-23T02:17:17Z | RUN | contract_scan_finish | PASS | 4.78s | key 9f079d1e2bea | proofq j0989 local
+- 2026-11-23T02:17:17Z | RUN | contract_send_done | PASS | 12.45s | key 66725a12b8f5 | proofq j0957 local
+- 2026-11-23T02:17:17Z | RUN | contract_step | PASS | 65.2s | key a0f7ffc42411 | proofq j0923 local
+- 2026-11-23T02:17:17Z | RUN | contract_tenths_of_minute | PASS | 199.58s | key f279711d3891 | proofq j0907 local
+- 2026-11-23T02:17:17Z | RUN | contract_text_push | PASS | 784.62s | key 078f80a9d9bf | proofq j0897 local
+- 2026-11-23T02:17:17Z | RUN | contract_text_push_i64 | PASS | 16.36s | key 1a04947712e4 | proofq j0951 local
+- 2026-11-23T02:17:17Z | RUN | contract_text_push_json | PASS | 338.89s | key 1010e748cadd | proofq j0904 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_text_push_pad6 | PASS | 309.61s | key eb50ed41e71d | proofq j0899 local
+- 2026-11-23T02:17:17Z | RUN | contract_text_push_u64 | PASS | 27.96s | key 9382306eefa2 | proofq j0938 local
+- 2026-11-23T02:17:17Z | RUN | contract_to_update_in | PASS | 18.79s | key fd227e154c9d | proofq j0952 local
+- 2026-11-23T02:17:17Z | RUN | contract_uptime_s | PASS | 60.9s | key b55a9bcb494e | proofq j0924 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_close | PASS | 35.59s | key a0577765a2c8 | proofq j0931 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_finish_scalar | PASS | 44.78s | key 4728fbf9c929 | proofq j0927 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_open | PASS | 9.0s | key 89f74ded316c | proofq j0968 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_scalar | PASS | 35.09s | key dba0260e427f | proofq j0933 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_step | PASS | 188.52s | key 0deccada501a | proofq j0908 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_str_end | PASS | 51.63s | key 8f772e29b38c | proofq j0930 worker-a
+- 2026-11-23T02:17:17Z | RUN | contract_walk_str_start | PASS | 8.25s | key 6c32f4444ef2 | proofq j0977 local
+- 2026-11-23T02:17:17Z | RUN | contract_walk_tmp_append | PASS | 8.5s | key 922199750883 | proofq j0975 local
+- 2026-11-23T02:17:17Z | RUN | contract_whole_minutes | PASS | 713.26s | key b9f4732668bf | proofq j0901 local
+- 2026-11-23T02:17:17Z | RUN | contract_wifi_track | PASS | 5.5s | key ff6505368221 | proofq j0986 local
+- 2026-11-23T02:17:17Z | RUN | lemma_dec_index | PASS | 30.11s | key a82982face85 | proofq j0932 local
+- 2026-11-23T02:17:17Z | RUN | lemma_div10_facts | PASS | 6.75s | key eb59c4936613 | proofq j0991 worker-a
+- 2026-11-23T02:17:17Z | RUN | lemma_json_escape_len | PASS | 4.49s | key fd7d88cbc3bf | proofq j0992 local
+- 2026-11-23T02:17:17Z | RUN | lemma_parse_u64_18 | PASS | 8.0s | key fd5806dddf34 | proofq j0978 local
+- 2026-11-23T02:17:17Z | RUN | lemma_text_eq | PASS | 25.02s | key e64b5558c8bb | proofq j0941 local
+- 2026-11-23T02:17:17Z | RUN | prop_always_responds | PASS | 27.05s | key 069d2d15bb34 | proofq j0937 local
+- 2026-11-23T02:17:17Z | RUN | prop_anchor_is_sound | PASS | 148.13s | key 063b5bba9926 | proofq j0911 worker-a
+- 2026-11-23T02:17:17Z | RUN | prop_boot | PASS | 8.68s | key b337ca4a0c53 | proofq j0980 worker-a
+- 2026-11-23T02:17:17Z | RUN | prop_clock_back_reboots | PASS | 11.12s | key e867ee0919e4 | proofq j0967 local
+- 2026-11-23T02:17:17Z | RUN | prop_clock_only_from_poll | PASS | 13.1s | key 7629749ca6bc | proofq j0960 local
+- 2026-11-23T02:17:17Z | RUN | prop_close_alert | PASS | 17.66s | key 18a9c4f3a807 | proofq j0949 local
+- 2026-11-23T02:17:17Z | RUN | prop_closed_door_is_quiet | PASS | 10.06s | key 4c5c690ca7ac | proofq j0976 local
+- 2026-11-23T02:17:17Z | RUN | prop_deaf_reboots | PASS | 12.64s | key da81a66abead | proofq j0963 local
+- 2026-11-23T02:17:17Z | RUN | prop_failed_poll_loses_nothing | PASS | 11.95s | key 03155f834296 | proofq j0964 local
+- 2026-11-23T02:17:17Z | RUN | prop_never_twice | PASS | 22.11s | key b97dd1d3c4e2 | proofq j0945 worker-b
+- 2026-11-23T02:17:17Z | RUN | prop_next_update_waits_for_reply | PASS | 15.56s | key 56355fae3be0 | proofq j0953 local
+- 2026-11-23T02:17:17Z | RUN | prop_no_clock_no_press | PASS | 8.4s | key 11cd75f5199a | proofq j0972 local
+- 2026-11-23T02:17:17Z | RUN | prop_open_alert_minutes | PASS | 12.16s | key 5d79dab2da0a | proofq j0961 local
+- 2026-11-23T02:17:17Z | RUN | prop_open_alert_schedule | PASS | 14.36s | key caaa50b8bf40 | proofq j0956 local
+- 2026-11-23T02:17:17Z | RUN | prop_reply_exactly_once | PASS | 12.75s | key 41c7c7e7b2eb | proofq j0974 local
+- 2026-11-23T02:17:17Z | RUN | prop_send_retry | PASS | 21.02s | key afc2d049d661 | proofq j0947 local
+- 2026-11-23T02:17:17Z | RUN | prop_stale_never_executes | PASS | 11.16s | key 0aeb1916e32e | proofq j0973 local
+- 2026-11-23T02:17:17Z | RUN | prop_unauthorized_never_acts | PASS | 9.91s | key 1e760fc68ecf | proofq j0971 local
+- 2026-11-23T02:17:17Z | RUN | prop_update_keeps_batch | PASS | 17.18s | key ea44346ab003 | proofq j0959 worker-a
+- 2026-11-23T02:17:17Z | RUN | prop_uptime_no_drift | PASS | 71.3s | key 1d629192c3da | proofq j0922 local
+- 2026-11-23T02:17:17Z | RUN | prop_watchdog | PASS | 15.01s | key ebaf4c23fa49 | proofq j0955 local
+- 2026-11-23T02:17:17Z | RUN | prop_wifi_never_blocks | PASS | 10.75s | key c62adb0e2049 | proofq j0965 local
+- 2026-11-23T02:17:17Z | SUMMARY | imported pass=96 fail=0 | passing=96/96 sound=96/96 | root 6338fb2a0410ec11 | verifier harnesses (outside cache.py) pass=44/48
+- 2026-11-23T07:04:18Z | RUN | contract_boot_bound | PASS | 163.15s | key e889e484e282 | proofq j1079 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_bot_feed | PASS | 265.99s | key 742084d0bf46 | proofq j1076 local
+- 2026-11-23T07:04:18Z | RUN | contract_bot_http_result | PASS | 45.84s | key 75e1d1f75794 | proofq j1077 local
+- 2026-11-23T07:04:18Z | RUN | contract_bot_next_update | PASS | 356.87s | key 3ef252eca451 | proofq j1078 worker-b
+- 2026-11-23T07:04:18Z | RUN | contract_bot_poll_done | PASS | 122.85s | key fcbeaae3b69e | proofq j1081 local
+- 2026-11-23T07:04:18Z | RUN | contract_bot_send_done | PASS | 67.09s | key 045e2130700c | proofq j1080 local
+- 2026-11-23T07:04:18Z | RUN | contract_bot_step | PASS | 93.66s | key 2bb2bcae70ea | proofq j1082 local
+- 2026-11-23T07:04:18Z | RUN | contract_classify_key | PASS | 8.95s | key 0e589a6c3323 | proofq j1083 local
+- 2026-11-23T07:04:18Z | RUN | contract_close_timeout_due | PASS | 5.25s | key 634c231f636b | proofq j1084 local
+- 2026-11-23T07:04:18Z | RUN | contract_closed_notice | PASS | 10.76s | key e884fb8e5572 | proofq j1085 local
+- 2026-11-23T07:04:18Z | RUN | contract_deaf | PASS | 5.45s | key c4cdeab76d9d | proofq j1086 local
+- 2026-11-23T07:04:18Z | RUN | contract_dec | PASS | 55.68s | key 5cd4b32b0d4d | proofq j1087 local
+- 2026-11-23T07:04:18Z | RUN | contract_decide | PASS | 5.49s | key 7eb7c61b1e15 | proofq j1088 local
+- 2026-11-23T07:04:18Z | RUN | contract_div10 | PASS | 45.38s | key 6515ad633c42 | proofq j1089 local
+- 2026-11-23T07:04:18Z | RUN | contract_div60 | PASS | 100.84s | key 085a9ec6f2b9 | proofq j1090 local
+- 2026-11-23T07:04:18Z | RUN | contract_door_tick | PASS | 24.31s | key cfd3fcd09a78 | proofq j1091 local
+- 2026-11-23T07:04:18Z | RUN | contract_inbox_pop | PASS | 82.0s | key d1061ccf6886 | proofq j1092 local
+- 2026-11-23T07:04:18Z | RUN | contract_inbox_push | PASS | 67.72s | key 3dc4ab0805b6 | proofq j1093 local
+- 2026-11-23T07:04:18Z | RUN | contract_interval_due | PASS | 5.75s | key 0445413c8e62 | proofq j1094 local
+- 2026-11-23T07:04:18Z | RUN | contract_json_escape | PASS | 6.04s | key 2d71536621fb | proofq j1095 local
+- 2026-11-23T07:04:18Z | RUN | contract_judge_age | PASS | 81.86s | key 34fcfaffd705 | proofq j1096 local
+- 2026-11-23T07:04:18Z | RUN | contract_lex_step | PASS | 7.96s | key f3a7e43d8452 | proofq j1097 local
+- 2026-11-23T07:04:18Z | RUN | contract_make_anchor | PASS | 92.08s | key 2b4939e59ed3 | proofq j1098 local
+- 2026-11-23T07:04:18Z | RUN | contract_name_from | PASS | 12.02s | key 99c4a886e0b6 | proofq j1099 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_on_poll | PASS | 15.73s | key 0045930cdc0d | proofq j1100 local
+- 2026-11-23T07:04:18Z | RUN | contract_on_update | PASS | 17.79s | key 00dade1d5e00 | proofq j1101 local
+- 2026-11-23T07:04:18Z | RUN | contract_op_budget_ms | PASS | 7.11s | key 1750e14743b4 | proofq j1102 local
+- 2026-11-23T07:04:18Z | RUN | contract_op_done | PASS | 14.42s | key 396955dfe71f | proofq j1103 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_open_alert_due | PASS | 6.61s | key caa6220772fe | proofq j1104 local
+- 2026-11-23T07:04:18Z | RUN | contract_ota_accept | PASS | 12.02s | key 0486cf83055a | proofq j1105 local
+- 2026-11-23T07:04:18Z | RUN | contract_ota_mark_valid | PASS | 6.3s | key 45206737e2f4 | proofq j1106 local
+- 2026-11-23T07:04:18Z | RUN | contract_ota_plan | PASS | 9.41s | key 4aee5051a3c9 | proofq j1107 local
+- 2026-11-23T07:04:18Z | RUN | contract_overrun | PASS | 6.32s | key 12bc435405d3 | proofq j1108 local
+- 2026-11-23T07:04:18Z | RUN | contract_parse_command | PASS | 64.18s | key a8a931088bc9 | proofq j1109 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_parse_http_date | PASS | 41.15s | key 9edab3ce4132 | proofq j1110 local
+- 2026-11-23T07:04:18Z | RUN | contract_parse_i64 | PASS | 16.78s | key 51437921b2ec | proofq j1111 local
+- 2026-11-23T07:04:18Z | RUN | contract_parse_u64 | PASS | 31.05s | key 561a95889d52 | proofq j1112 local
+- 2026-11-23T07:04:18Z | RUN | contract_parse_version | PASS | 107.76s | key b7000864f74d | proofq j1113 local
+- 2026-11-23T07:04:18Z | RUN | contract_pick_op | PASS | 16.47s | key 2473a0b8495a | proofq j1114 local
+- 2026-11-23T07:04:18Z | RUN | contract_push_mention | PASS | 25.99s | key bbb222733e42 | proofq j1115 local
+- 2026-11-23T07:04:18Z | RUN | contract_queue_door_events | PASS | 9.95s | key 112df60aba4b | proofq j1116 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_closed_after | PASS | 23.35s | key ee98bf65f2e5 | proofq j1117 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_diag | PASS | 41.75s | key c5c27bdd677b | proofq j1118 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_heap | PASS | 23.62s | key 4eaed0dec531 | proofq j1119 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_heartbeat | PASS | 37.77s | key 8ab9e46ed91f | proofq j1120 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_log | PASS | 31.4s | key 39b66879c01d | proofq j1121 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_render_msg | PASS | 95.26s | key d647de0b35b9 | proofq j1122 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_poll_path | PASS | 12.86s | key f92e53ef796d | proofq j1123 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_reply | PASS | 108.27s | key 3a3c8a365864 | proofq j1124 local
+- 2026-11-23T07:04:18Z | RUN | contract_render_send_body | PASS | 575.23s | key 4b40ea3f1d5a | proofq j1125 local
+- 2026-11-23T07:04:18Z | RUN | contract_scan_byte | PASS | 30.66s | key 4751fa9d7483 | proofq j1126 local
+- 2026-11-23T07:04:18Z | RUN | contract_scan_finish | PASS | 7.25s | key b1db581b360c | proofq j1127 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_send_done | PASS | 12.07s | key 130a8eede7c3 | proofq j1128 local
+- 2026-11-23T07:04:18Z | RUN | contract_step | PASS | 75.96s | key 792379246bf6 | proofq j1129 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_tenths_of_minute | PASS | 191.37s | key f60958b84216 | proofq j1130 local
+- 2026-11-23T07:04:18Z | RUN | contract_text_push | PASS | 759.62s | key a20608f1f0f7 | proofq j1131 local
+- 2026-11-23T07:04:18Z | RUN | contract_text_push_i64 | PASS | 17.57s | key 2c69b1cdc1e9 | proofq j1132 local
+- 2026-11-23T07:04:18Z | RUN | contract_text_push_json | PASS | 280.0s | key 1e9c2af1781a | proofq j1133 local
+- 2026-11-23T07:04:18Z | RUN | contract_text_push_pad6 | PASS | 319.83s | key c1e481f3ddd6 | proofq j1134 worker-b
+- 2026-11-23T07:04:18Z | RUN | contract_text_push_u64 | PASS | 30.55s | key 510993ce7f38 | proofq j1135 local
+- 2026-11-23T07:04:18Z | RUN | contract_to_update_in | PASS | 21.95s | key 58656417d610 | proofq j1136 local
+- 2026-11-23T07:04:18Z | RUN | contract_uptime_s | PASS | 57.22s | key 620c7ca7c067 | proofq j1137 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_version_newer | PASS | 5.25s | key eb744855d349 | proofq j1138 local
+- 2026-11-23T07:04:18Z | RUN | contract_walk_close | PASS | 31.7s | key 0cfdfadc718c | proofq j1139 local
+- 2026-11-23T07:04:18Z | RUN | contract_walk_finish_scalar | PASS | 47.62s | key e7ea2c961ab7 | proofq j1140 local
+- 2026-11-23T07:04:18Z | RUN | contract_walk_open | PASS | 12.72s | key 326d98655b96 | proofq j1141 local
+- 2026-11-23T07:04:18Z | RUN | contract_walk_scalar | PASS | 35.99s | key 561314eb293e | proofq j1142 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_walk_step | PASS | 219.67s | key 6a87ecb8ccd2 | proofq j1143 local
+- 2026-11-23T07:04:18Z | RUN | contract_walk_str_end | PASS | 37.77s | key 725b97b4f066 | proofq j1144 local
+- 2026-11-23T07:04:18Z | RUN | contract_walk_str_start | PASS | 10.02s | key b537a569ac63 | proofq j1145 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_walk_tmp_append | PASS | 10.22s | key 544091e5adae | proofq j1146 local
+- 2026-11-23T07:04:18Z | RUN | contract_whole_minutes | PASS | 633.99s | key 5741af37ca04 | proofq j1147 worker-a
+- 2026-11-23T07:04:18Z | RUN | contract_wifi_track | PASS | 5.96s | key e9f4e148ed1e | proofq j1148 local
+- 2026-11-23T07:04:18Z | RUN | lemma_dec_index | PASS | 27.8s | key 6fbe5876c170 | proofq j1149 local
+- 2026-11-23T07:04:18Z | RUN | lemma_div10_facts | PASS | 5.9s | key 75755c4afde1 | proofq j1150 local
+- 2026-11-23T07:04:18Z | RUN | lemma_json_escape_len | PASS | 5.82s | key fbd37ab464c5 | proofq j1151 local
+- 2026-11-23T07:04:18Z | RUN | lemma_parse_u64_18 | PASS | 9.91s | key 2d3744a7be3d | proofq j1152 local
+- 2026-11-23T07:04:18Z | RUN | lemma_text_eq | PASS | 32.76s | key bd18a90abb0f | proofq j1153 local
+- 2026-11-23T07:04:18Z | RUN | prop_always_responds | PASS | 77.2s | key 1a3af78672fa | proofq j1154 local
+- 2026-11-23T07:04:18Z | RUN | prop_anchor_is_sound | PASS | 153.45s | key 6b89e840e664 | proofq j1155 local
+- 2026-11-23T07:04:18Z | RUN | prop_boot | PASS | 6.61s | key f9c8ae00be13 | proofq j1156 local
+- 2026-11-23T07:04:18Z | RUN | prop_clock_back_reboots | PASS | 11.18s | key e3ee37b0d363 | proofq j1157 local
+- 2026-11-23T07:04:18Z | RUN | prop_clock_only_from_poll | PASS | 13.53s | key 6e26c0372902 | proofq j1158 local
+- 2026-11-23T07:04:18Z | RUN | prop_close_alert | PASS | 19.15s | key 3cc1bc3e4502 | proofq j1159 local
+- 2026-11-23T07:04:18Z | RUN | prop_closed_door_is_quiet | PASS | 11.3s | key 059269526282 | proofq j1160 local
+- 2026-11-23T07:04:18Z | RUN | prop_deaf_reboots | PASS | 9.56s | key e5ad9ae7b951 | proofq j1161 local
+- 2026-11-23T07:04:18Z | RUN | prop_failed_poll_loses_nothing | PASS | 15.02s | key a4fa3937c4b3 | proofq j1162 local
+- 2026-11-23T07:04:18Z | RUN | prop_never_twice | PASS | 18.54s | key 953523847971 | proofq j1163 local
+- 2026-11-23T07:04:18Z | RUN | prop_next_update_waits_for_reply | PASS | 15.38s | key 096247f3d687 | proofq j1164 local
+- 2026-11-23T07:04:18Z | RUN | prop_no_clock_no_press | PASS | 7.86s | key 8b491a0dfe09 | proofq j1165 local
+- 2026-11-23T07:04:18Z | RUN | prop_not_fresh_is_silent | PASS | 80.34s | key c40485c262f8 | proofq j1166 local
+- 2026-11-23T07:04:18Z | RUN | prop_open_alert_minutes | PASS | 9.4s | key c843be318bfd | proofq j1167 local
+- 2026-11-23T07:04:18Z | RUN | prop_open_alert_schedule | PASS | 15.27s | key eb239313f0ca | proofq j1168 worker-b
+- 2026-11-23T07:04:18Z | RUN | prop_ota_check_cannot_starve | PASS | 25.81s | key ecbf18afa4e6 | proofq j1169 local
+- 2026-11-23T07:04:18Z | RUN | prop_ota_checks_image | PASS | 9.27s | key 2585644e73f2 | proofq j1170 local
+- 2026-11-23T07:04:18Z | RUN | prop_ota_only_newer | PASS | 12.38s | key 3bd85d51b3ea | proofq j1171 worker-b
+- 2026-11-23T07:04:18Z | RUN | prop_reply_exactly_once | PASS | 14.08s | key 4142ac172b42 | proofq j1172 local
+- 2026-11-23T07:04:18Z | RUN | prop_send_retry | PASS | 24.09s | key 24c14cccbc15 | proofq j1173 local
+- 2026-11-23T07:04:18Z | RUN | prop_stale_never_executes | PASS | 11.23s | key 41ac2f067195 | proofq j1174 worker-b
+- 2026-11-23T07:04:18Z | RUN | prop_step_keeps_unverified | PASS | 10.67s | key 2b1a42d98295 | proofq j1175 local
+- 2026-11-23T07:04:18Z | RUN | prop_unauthorized_never_acts | PASS | 11.33s | key decf76c54e08 | proofq j1176 local
+- 2026-11-23T07:04:18Z | RUN | prop_unverified_needs_good_poll | PASS | 10.43s | key 5c2eb741da22 | proofq j1177 worker-b
+- 2026-11-23T07:04:18Z | RUN | prop_update_keeps_batch | PASS | 13.13s | key 6ee65908898d | proofq j1178 local
+- 2026-11-23T07:04:18Z | RUN | prop_uptime_no_drift | PASS | 69.36s | key 3e555f3fddff | proofq j1179 local
+- 2026-11-23T07:04:18Z | RUN | prop_watchdog | PASS | 13.84s | key 087c0461d040 | proofq j1180 local
+- 2026-11-23T07:04:18Z | RUN | prop_wifi_never_blocks | PASS | 11.87s | key 191fd8e854f3 | proofq j1181 worker-b
+- 2026-11-23T07:04:18Z | SUMMARY | imported pass=106 fail=0 | passing=106/106 sound=106/106 | root 0c87ab772e16ed75 | verifier harnesses (outside cache.py) pass=44/48

@@ -1,0 +1,12 @@
+[Unit]
+Description=proofq: job queue for cargo kani runs (worker pool, ~/proofq)
+
+[Service]
+ExecStart=%h/.local/bin/proofq daemon
+Restart=on-failure
+RestartSec=3
+# Jobs run in their own scopes under proofq.slice; the daemon kills and requeues them on stop.
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

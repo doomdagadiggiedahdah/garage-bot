@@ -1,0 +1,739 @@
+[
+ {
+  "name": "uptime_s",
+  "sig": "uptime_s(now_ms: u64) -> u64",
+  "callees": [],
+  "spec": "spec_uptime_s",
+  "doc": "Seconds since boot from the monotonic clock. Never accumulated, so it cannot drift.",
+  "bounds": {}
+ },
+ {
+  "name": "interval_due",
+  "sig": "interval_due(last: Option<u64>, now: u64, interval: u64) -> bool",
+  "callees": [],
+  "spec": "spec_due",
+  "doc": "True when `interval` ms have passed since `last` (None = never ran = due). Saturating: a `last` in the future is not due unless interval is 0.",
+  "bounds": {}
+ },
+ {
+  "name": "whole_minutes",
+  "sig": "whole_minutes(elapsed_ms: u64) -> u64",
+  "callees": [],
+  "spec": "spec_whole_minutes",
+  "doc": "Whole minutes in a duration.",
+  "bounds": {}
+ },
+ {
+  "name": "tenths_of_minute",
+  "sig": "tenths_of_minute(elapsed_ms: u64) -> u64",
+  "callees": [],
+  "spec": "spec_tenths",
+  "doc": "Minutes in tenths, rounded half up, saturating.",
+  "bounds": {}
+ },
+ {
+  "name": "make_anchor",
+  "sig": "make_anchor(date: u64, t_req_ms: u64, now: u64) -> Option<Anchor>",
+  "callees": [],
+  "spec": "spec_anchor",
+  "doc": "Build a time anchor from an HTTP Date header value, or None when the inputs are implausible.",
+  "bounds": {}
+ },
+ {
+  "name": "boot_bound",
+  "sig": "boot_bound(k: Anchor) -> u64",
+  "callees": [],
+  "spec": "spec_boot_unix",
+  "doc": "Upper bound on the unix second of this boot, from an anchor.",
+  "bounds": {}
+ },
+ {
+  "name": "judge_age",
+  "sig": "judge_age(anchor: Option<Anchor>, boot_unix: Option<u64>, now: u64, date: Option<u64>) -> Age",
+  "callees": [],
+  "spec": "spec_age",
+  "doc": "How old is a message dated `date`? Errs on the side of older.",
+  "bounds": {}
+ },
+ {
+  "name": "decide",
+  "sig": "decide(cmd: Cmd, age: Age, door_open: bool) -> Decision",
+  "callees": [],
+  "spec": "spec_decide",
+  "doc": "What a command does, given its age verdict and the door.",
+  "bounds": {}
+ },
+ {
+  "name": "on_update",
+  "sig": "on_update(s: State, u: UpdateIn, now: u64, door_open: bool) -> (State, bool)",
+  "callees": [
+   "judge_age",
+   "decide"
+  ],
+  "spec": "spec_on_update",
+  "doc": "Process one update of the batch. bool = press the relay now.",
+  "bounds": {}
+ },
+ {
+  "name": "on_poll",
+  "sig": "on_poll(s: State, p: PollResult, now: u64) -> State",
+  "callees": [
+   "make_anchor",
+   "boot_bound"
+  ],
+  "spec": "spec_on_poll",
+  "doc": "Account for a finished getUpdates call.",
+  "bounds": {}
+ },
+ {
+  "name": "closed_notice",
+  "sig": "closed_notice(d: DoorState, now: u64) -> Option<ClosedNotice>",
+  "callees": [
+   "tenths_of_minute"
+  ],
+  "spec": "spec_closed_notice",
+  "doc": "The 'door closed after X.Y minutes' notice, when a bot close was pending and the door was open long enough.",
+  "bounds": {}
+ },
+ {
+  "name": "open_alert_due",
+  "sig": "open_alert_due(d: DoorState, now: u64) -> bool",
+  "callees": [],
+  "spec": "spec_open_alert_due",
+  "doc": "Is an open-door alert due on this pass?",
+  "bounds": {}
+ },
+ {
+  "name": "close_timeout_due",
+  "sig": "close_timeout_due(c: CloseReq, now: u64) -> bool",
+  "callees": [],
+  "spec": "spec_close_timeout_due",
+  "doc": "Has a pending bot close timed out without being reported yet?",
+  "bounds": {}
+ },
+ {
+  "name": "door_tick",
+  "sig": "door_tick(d: DoorState, now: u64, open: bool) -> (DoorState, DoorEvents)",
+  "callees": [
+   "closed_notice",
+   "open_alert_due",
+   "close_timeout_due",
+   "whole_minutes"
+  ],
+  "spec": "spec_door",
+  "doc": "Door monitoring for one pass: open alerts, close timeout, closed notice.",
+  "bounds": {}
+ },
+ {
+  "name": "op_budget_ms",
+  "sig": "op_budget_ms(op: Op) -> u64",
+  "callees": [],
+  "spec": "spec_op_budget_ms",
+  "doc": "Deadline the shell must enforce on an op.",
+  "bounds": {}
+ },
+ {
+  "name": "deaf",
+  "sig": "deaf(last_good_poll: Option<u64>, now: u64) -> bool",
+  "callees": [],
+  "spec": "spec_deaf",
+  "doc": "No successful poll for DEAF_REBOOT_AFTER_MS (counted from boot when there was none yet).",
+  "bounds": {}
+ },
+ {
+  "name": "pick_op",
+  "sig": "pick_op(n: State, now: u64, overrun: bool, wifi_up: bool) -> Op",
+  "callees": [
+   "deaf",
+   "interval_due"
+  ],
+  "spec": "spec_pick_op",
+  "doc": "The priority chain: which single op this pass performs.",
+  "bounds": {}
+ },
+ {
+  "name": "overrun",
+  "sig": "overrun(last_step: Option<u64>, now: u64) -> bool",
+  "callees": [],
+  "spec": "spec_overrun",
+  "doc": "Was the previous pass more than the watchdog timeout ago, or did the clock go back?",
+  "bounds": {}
+ },
+ {
+  "name": "send_done",
+  "sig": "send_done(s: State, m: Msg, ok: bool) -> State",
+  "callees": [],
+  "spec": "spec_send_done",
+  "doc": "The shell reports how the send of `m` went: after a failure `m` goes back into its slot, unless SEND_TRIES sends in a row have failed.",
+  "bounds": {}
+ },
+ {
+  "name": "queue_door_events",
+  "sig": "queue_door_events(s: State, ev: DoorEvents, door_open: bool) -> State",
+  "callees": [],
+  "spec": "spec_queue_door_events",
+  "doc": "Put this pass's door events into the pending slots; a closed door first drops the open-door ones.",
+  "bounds": {}
+ },
+ {
+  "name": "wifi_track",
+  "sig": "wifi_track(since: Option<u64>, now: u64, wifi_up: bool) -> Option<u64>",
+  "callees": [],
+  "spec": "spec_wifi_track",
+  "doc": "Since when WiFi has been down (None while it is up).",
+  "bounds": {}
+ },
+ {
+  "name": "op_done",
+  "sig": "op_done(s: State, op: Op, now: u64) -> State",
+  "callees": [],
+  "spec": "spec_op_done",
+  "doc": "Clear the slot the chosen op serves, or stamp the poll time, or clear the update flag.",
+  "bounds": {}
+ },
+ {
+  "name": "step",
+  "sig": "step(s: State, i: StepIn) -> StepOut",
+  "callees": [
+   "overrun",
+   "door_tick",
+   "queue_door_events",
+   "wifi_track",
+   "interval_due",
+   "pick_op",
+   "op_done",
+   "uptime_s"
+  ],
+  "spec": "spec_step",
+  "doc": "One loop pass of the core.",
+  "bounds": {}
+ },
+ {
+  "name": "text_push",
+  "sig": "text_push(t: Text, s: &[u8]) -> Text",
+  "callees": [],
+  "spec": "spec_text_push",
+  "doc": "Append bytes; all or nothing; overflow is sticky.",
+  "bounds": {
+   "s": 24
+  }
+ },
+ {
+  "name": "div10",
+  "sig": "div10(v: u64) -> (u64, u8)",
+  "callees": [],
+  "spec": "spec_div10",
+  "doc": "One decimal step: `(v / 10, v % 10)`.",
+  "bounds": {}
+ },
+ {
+  "name": "dec",
+  "sig": "dec(v: u64) -> ([u8; 20], usize)",
+  "callees": [
+   "div10"
+  ],
+  "spec": "spec_dec",
+  "doc": "Decimal digits of `v`, right-aligned in 20 bytes; digits are `b[i..]`, bytes before `i` are 0.",
+  "bounds": {}
+ },
+ {
+  "name": "div60",
+  "sig": "div60(v: u64) -> (u64, u64)",
+  "callees": [],
+  "spec": "spec_div60",
+  "doc": "Quotient and remainder by 60: `(v / 60, v % 60)`.",
+  "bounds": {}
+ },
+ {
+  "name": "text_push_u64",
+  "sig": "text_push_u64(t: Text, v: u64) -> Text",
+  "callees": [
+   "dec",
+   "text_push"
+  ],
+  "spec": "spec_text_push_u64",
+  "doc": "Append a decimal number.",
+  "bounds": {}
+ },
+ {
+  "name": "text_push_i64",
+  "sig": "text_push_i64(t: Text, v: i64) -> Text",
+  "callees": [
+   "text_push",
+   "text_push_u64"
+  ],
+  "spec": "spec_text_push_i64",
+  "doc": "Append a signed decimal number.",
+  "bounds": {}
+ },
+ {
+  "name": "text_push_pad6",
+  "sig": "text_push_pad6(t: Text, v: u64) -> Text",
+  "callees": [
+   "dec",
+   "text_push"
+  ],
+  "spec": "spec_text_push_padded(t, v, 6)",
+  "doc": "Append a decimal number right-aligned with spaces in 6 columns (never truncated).",
+  "bounds": {}
+ },
+ {
+  "name": "json_escape",
+  "sig": "json_escape(c: u8) -> ([u8; 6], u8)",
+  "callees": [],
+  "spec": "spec_json_escape",
+  "doc": "One byte escaped for the inside of a JSON string: the bytes and how many (1, 2 or 6).",
+  "bounds": {}
+ },
+ {
+  "name": "text_push_json",
+  "sig": "text_push_json(t: Text, s: &[u8]) -> Text",
+  "callees": [
+   "json_escape",
+   "text_push"
+  ],
+  "spec": "spec_text_push_json",
+  "doc": "Append bytes escaped for the inside of a JSON string.",
+  "bounds": {
+   "s": 8
+  }
+ },
+ {
+  "name": "push_mention",
+  "sig": "push_mention(t: Text, who: &Name) -> Text",
+  "callees": [
+   "text_push"
+  ],
+  "spec": "spec_push_mention",
+  "doc": "Append `@name ` unless the name is empty.",
+  "bounds": {}
+ },
+ {
+  "name": "render_closed_after",
+  "sig": "render_closed_after(c: ClosedNotice) -> Text",
+  "callees": [
+   "div10",
+   "push_mention",
+   "text_push",
+   "text_push_u64"
+  ],
+  "spec": "spec_render_closed_after",
+  "doc": "`@name Door closed after X.Y minutes.`",
+  "bounds": {}
+ },
+ {
+  "name": "render_diag",
+  "sig": "render_diag(version: &[u8], d: Diag) -> Text",
+  "callees": [
+   "div60",
+   "text_push",
+   "text_push_u64"
+  ],
+  "spec": "spec_render_diag",
+  "doc": "The reply to the debug command.",
+  "bounds": {
+   "version": 8
+  }
+ },
+ {
+  "name": "render_reply",
+  "sig": "render_reply(o: Outgoing, version: &[u8], d: Diag) -> Text",
+  "callees": [
+   "text_push",
+   "push_mention",
+   "render_diag"
+  ],
+  "spec": "spec_render_reply",
+  "doc": "The text of a reply to a command.",
+  "bounds": {
+   "version": 8
+  }
+ },
+ {
+  "name": "render_msg",
+  "sig": "render_msg(m: Msg, notify: &[u8], version: &[u8], d: Diag) -> Text",
+  "callees": [
+   "text_push",
+   "push_mention",
+   "text_push_u64",
+   "render_closed_after",
+   "render_reply"
+  ],
+  "spec": "spec_render_msg",
+  "doc": "The Telegram message text for a Msg.",
+  "bounds": {
+   "notify": 8,
+   "version": 8
+  }
+ },
+ {
+  "name": "render_send_body",
+  "sig": "render_send_body(chat_id: i64, text: &Text) -> Text",
+  "callees": [
+   "text_push",
+   "text_push_i64",
+   "text_push_json"
+  ],
+  "spec": "spec_render_send_body",
+  "doc": "JSON body for sendMessage.",
+  "bounds": {}
+ },
+ {
+  "name": "render_poll_path",
+  "sig": "render_poll_path(offset: u64) -> Text",
+  "callees": [
+   "text_push",
+   "text_push_u64"
+  ],
+  "spec": "spec_render_poll_path",
+  "doc": "URL path and query for getUpdates.",
+  "bounds": {}
+ },
+ {
+  "name": "render_log",
+  "sig": "render_log(uptime_s: u64, level: Level, free_mem: u32, msg: &[u8]) -> Text",
+  "callees": [
+   "text_push",
+   "text_push_pad6"
+  ],
+  "spec": "spec_render_log",
+  "doc": "One log line in the format the log server parses.",
+  "bounds": {
+   "msg": 8
+  }
+ },
+ {
+  "name": "render_heartbeat",
+  "sig": "render_heartbeat(d: Diag) -> Text",
+  "callees": [
+   "text_push",
+   "div60",
+   "text_push_u64",
+   "text_push_i64"
+  ],
+  "spec": "spec_render_heartbeat",
+  "doc": "The HEARTBEAT log message.",
+  "bounds": {}
+ },
+ {
+  "name": "render_heap",
+  "sig": "render_heap(d: Diag) -> Text",
+  "callees": [
+   "text_push",
+   "div60",
+   "text_push_u64"
+  ],
+  "spec": "spec_render_heap",
+  "doc": "The HEAP telemetry line.",
+  "bounds": {}
+ },
+ {
+  "name": "parse_command",
+  "sig": "parse_command(t: &[u8]) -> Cmd",
+  "callees": [],
+  "spec": "spec_parse_command",
+  "doc": "Recognise a command word the way main.py does.",
+  "bounds": {
+   "t": 10
+  }
+ },
+ {
+  "name": "parse_u64",
+  "sig": "parse_u64(s: &[u8]) -> Option<u64>",
+  "callees": [],
+  "spec": "spec_parse_u64",
+  "doc": "1 to 19 ASCII digits.",
+  "bounds": {
+   "s": 21
+  }
+ },
+ {
+  "name": "parse_i64",
+  "sig": "parse_i64(s: &[u8]) -> Option<i64>",
+  "callees": [
+   "parse_u64"
+  ],
+  "spec": "spec_parse_i64",
+  "doc": "Optional minus sign, then 1 to 18 ASCII digits.",
+  "bounds": {
+   "s": 21
+  }
+ },
+ {
+  "name": "parse_http_date",
+  "sig": "parse_http_date(s: &[u8]) -> Option<u64>",
+  "callees": [],
+  "spec": "spec_http_date",
+  "doc": "IMF-fixdate HTTP Date header to unix seconds.",
+  "bounds": {
+   "s": 30
+  }
+ },
+ {
+  "name": "lex_step",
+  "sig": "lex_step(lx: Lex, b: u8) -> (Lex, Tok)",
+  "callees": [],
+  "spec": "spec_lex_step",
+  "doc": "JSON tokenizer, one byte.",
+  "bounds": {}
+ },
+ {
+  "name": "classify_key",
+  "sig": "classify_key(on: u8, in_from: bool, k: &[u8]) -> Key",
+  "callees": [],
+  "spec": "spec_classify_key",
+  "doc": "Which known JSON key the bytes spell at a path level.",
+  "bounds": {
+   "k": 10
+  }
+ },
+ {
+  "name": "name_from",
+  "sig": "name_from(s: &[u8], over: bool) -> Name",
+  "callees": [],
+  "spec": "spec_name_from",
+  "doc": "Validate captured bytes as a username.",
+  "bounds": {
+   "s": 34
+  }
+ },
+ {
+  "name": "walk_tmp_append",
+  "sig": "walk_tmp_append(w: Walk, b: u8) -> Walk",
+  "callees": [],
+  "spec": "spec_walk_tmp_append",
+  "doc": "Append one byte to the scratch buffer, or mark it overflowed when full.",
+  "bounds": {}
+ },
+ {
+  "name": "walk_finish_scalar",
+  "sig": "walk_finish_scalar(w: Walk) -> Walk",
+  "callees": [
+   "parse_u64",
+   "parse_i64"
+  ],
+  "spec": "spec_walk_finish_scalar",
+  "doc": "A scalar value ended: store it where its key says and clear the scratch.",
+  "bounds": {}
+ },
+ {
+  "name": "walk_open",
+  "sig": "walk_open(w: Walk, is_obj: bool) -> Walk",
+  "callees": [],
+  "spec": "spec_walk_open",
+  "doc": "`{` or `[`: one level deeper, following the path to the fields of an update.",
+  "bounds": {}
+ },
+ {
+  "name": "walk_close",
+  "sig": "walk_close(w: Walk) -> (Walk, Option<RawUpdate>)",
+  "callees": [
+   "walk_finish_scalar"
+  ],
+  "spec": "spec_walk_close",
+  "doc": "`}` or `]`: one level up; closing an update object hands the update out.",
+  "bounds": {}
+ },
+ {
+  "name": "walk_str_start",
+  "sig": "walk_str_start(w: Walk) -> Walk",
+  "callees": [],
+  "spec": "spec_walk_str_start",
+  "doc": "A string opens: decide what to capture (key, message text, username, nothing).",
+  "bounds": {}
+ },
+ {
+  "name": "walk_str_end",
+  "sig": "walk_str_end(w: Walk) -> Walk",
+  "callees": [
+   "classify_key",
+   "name_from"
+  ],
+  "spec": "spec_walk_str_end",
+  "doc": "A string closes: classify a key, or store the captured text or username.",
+  "bounds": {}
+ },
+ {
+  "name": "walk_scalar",
+  "sig": "walk_scalar(w: Walk, b: u8) -> Walk",
+  "callees": [
+   "walk_tmp_append"
+  ],
+  "spec": "spec_walk_scalar",
+  "doc": "One byte of a number or literal: captured when its key is ok, update_id, date or id.",
+  "bounds": {}
+ },
+ {
+  "name": "walk_step",
+  "sig": "walk_step(w: Walk, t: Tok) -> (Walk, Option<RawUpdate>)",
+  "callees": [
+   "walk_open",
+   "walk_close",
+   "walk_finish_scalar",
+   "walk_str_start",
+   "walk_tmp_append",
+   "walk_str_end",
+   "walk_scalar"
+  ],
+  "spec": "spec_walk_step",
+  "doc": "JSON structure tracker, one token.",
+  "bounds": {}
+ },
+ {
+  "name": "scan_byte",
+  "sig": "scan_byte(sc: Scan, b: u8) -> (Scan, Option<RawUpdate>)",
+  "callees": [
+   "lex_step",
+   "walk_step"
+  ],
+  "spec": "spec_scan_byte",
+  "doc": "Tokenizer plus tracker, one byte.",
+  "bounds": {}
+ },
+ {
+  "name": "scan_finish",
+  "sig": "scan_finish(sc: Scan) -> bool",
+  "callees": [],
+  "spec": "spec_scan_finish",
+  "doc": "Was the body one complete JSON value with ok:true?",
+  "bounds": {}
+ },
+ {
+  "name": "to_update_in",
+  "sig": "to_update_in(r: RawUpdate, chat_id: i64) -> Option<UpdateIn>",
+  "callees": [
+   "parse_command"
+  ],
+  "spec": "spec_to_update_in",
+  "doc": "Reduce a parsed update to what the core needs.",
+  "bounds": {}
+ },
+ {
+  "name": "inbox_push",
+  "sig": "inbox_push(q: Inbox, u: RawUpdate) -> Inbox",
+  "callees": [],
+  "spec": "spec_inbox_push",
+  "doc": "Queue a parsed update; a full inbox is unchanged.",
+  "bounds": {}
+ },
+ {
+  "name": "inbox_pop",
+  "sig": "inbox_pop(q: Inbox) -> (Inbox, Option<RawUpdate>)",
+  "callees": [],
+  "spec": "spec_inbox_pop",
+  "doc": "Take the oldest parsed update.",
+  "bounds": {}
+ },
+ {
+  "name": "version_newer",
+  "sig": "version_newer(a: Version, b: Version) -> bool",
+  "callees": [],
+  "spec": "spec_version_newer",
+  "doc": "`a` is a strictly later release than `b` (major, then minor, then patch).",
+  "bounds": {}
+ },
+ {
+  "name": "parse_version",
+  "sig": "parse_version(s: &[u8]) -> Option<Version>",
+  "callees": [],
+  "spec": "spec_parse_version",
+  "doc": "`[v]MAJOR.MINOR.PATCH[+build]`, each part 1 to 5 digits and at most 65535.",
+  "bounds": {
+   "s": 26
+  }
+ },
+ {
+  "name": "ota_plan",
+  "sig": "ota_plan(running: Version, m: Manifest, slot_size: u32, bad: Option<Version>) -> bool",
+  "callees": [
+   "version_newer"
+  ],
+  "spec": "spec_ota_plan",
+  "doc": "Download the manifest's image? Only a strictly newer version that fits the slot and is not the one that just rolled back.",
+  "bounds": {}
+ },
+ {
+  "name": "ota_accept",
+  "sig": "ota_accept(running: Version, m: Manifest, slot_size: u32, d: Download) -> bool",
+  "callees": [
+   "version_newer"
+  ],
+  "spec": "spec_ota_accept",
+  "doc": "Boot the downloaded image? Only if size, SHA-256 and embedded version match the manifest and the install is still allowed.",
+  "bounds": {}
+ },
+ {
+  "name": "ota_mark_valid",
+  "sig": "ota_mark_valid(pending_verify: bool, last_good_poll: Option<u64>) -> bool",
+  "callees": [],
+  "spec": "spec_ota_mark_valid",
+  "doc": "Confirm a freshly installed image? Only after it completed a successful Telegram poll.",
+  "bounds": {}
+ },
+ {
+  "name": "bot_step",
+  "sig": "bot_step(b: Bot, i: StepIn) -> BotStep",
+  "callees": [
+   "interval_due",
+   "step"
+  ],
+  "spec": "spec_bot_step",
+  "doc": "One loop pass. The shell calls this once per pass, right after feeding the watchdog.",
+  "bounds": {}
+ },
+ {
+  "name": "bot_feed",
+  "sig": "bot_feed(b: Bot, byte: u8) -> Bot",
+  "callees": [
+   "scan_byte",
+   "inbox_push"
+  ],
+  "spec": "spec_bot_feed",
+  "doc": "One byte of a getUpdates response body.",
+  "bounds": {}
+ },
+ {
+  "name": "bot_poll_done",
+  "sig": "bot_poll_done(b: Bot, http_ok: bool, date_hdr: &[u8], t_req_ms: u64, now: u64) -> Bot",
+  "callees": [
+   "scan_finish",
+   "parse_http_date",
+   "on_poll"
+  ],
+  "spec": "spec_bot_poll_done",
+  "doc": "The getUpdates exchange is over.",
+  "bounds": {
+   "date_hdr": 30
+  }
+ },
+ {
+  "name": "bot_next_update",
+  "sig": "bot_next_update(b: Bot, chat_id: i64, now: u64, door_open: bool) -> (Bot, bool)",
+  "callees": [
+   "inbox_pop",
+   "to_update_in",
+   "on_update"
+  ],
+  "spec": "spec_bot_next_update",
+  "doc": "Act on the next queued update. bool = press the relay now.",
+  "bounds": {}
+ },
+ {
+  "name": "bot_send_done",
+  "sig": "bot_send_done(b: Bot, m: Msg, ok: bool) -> Bot",
+  "callees": [
+   "send_done"
+  ],
+  "spec": "spec_bot_send_done",
+  "doc": "The shell calls this after every Op::Send, with the message and whether Telegram accepted it.",
+  "bounds": {}
+ },
+ {
+  "name": "bot_http_result",
+  "sig": "bot_http_result(b: Bot, ok: bool, sock_err: bool) -> Bot",
+  "callees": [],
+  "spec": "spec_bot_http_result",
+  "doc": "Count an HTTP call for the diagnostics.",
+  "bounds": {}
+ }
+]

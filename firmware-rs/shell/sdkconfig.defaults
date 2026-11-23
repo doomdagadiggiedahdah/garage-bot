@@ -1,0 +1,37 @@
+# The loop copies the whole Bot state by value; give the main task room.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=40000
+CONFIG_PTHREAD_TASK_STACK_SIZE_DEFAULT=8192
+
+# Task watchdog (TRUSTED.md T8 item 7): armed at boot, 300 s, panics (= reset).
+CONFIG_ESP_TASK_WDT_EN=y
+CONFIG_ESP_TASK_WDT_INIT=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=300
+CONFIG_ESP_TASK_WDT_PANIC=y
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
+
+# TLS: validate api.telegram.org against the built-in CA bundle (T8 item 10).
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=y
+CONFIG_ESP_TLS_INSECURE=n
+
+# Flash: 4 MB, matching partitions.csv (two 0x1E0000 app slots).
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# OTA rollback: a new image boots PENDING_VERIFY; if it resets before the app
+# marks it valid (after its first good Telegram poll), the bootloader goes back.
+# APP_ANTI_ROLLBACK stays OFF: it burns eFuses.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK=n
+
+# Signed app images WITHOUT hardware secure boot (no eFuses, no flash encryption).
+# esp_ota_end() checks the ECDSA signature of every OTA download against this
+# public key, compiled into the app. The private key stays on eE, out of git:
+# ~/.garagebot-signing/signing_key.pem. Images are signed by remote_build.sh.
+CONFIG_SECURE_SIGNED_APPS_NO_SECURE_BOOT=y
+CONFIG_SECURE_SIGNED_APPS_ECDSA_SCHEME=y
+CONFIG_SECURE_SIGNED_ON_BOOT_NO_SECURE_BOOT=n
+CONFIG_SECURE_SIGNED_ON_UPDATE_NO_SECURE_BOOT=y
+CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES=n
+CONFIG_SECURE_BOOT_VERIFICATION_KEY="/home/mat/.garagebot-signing/verification_key.bin"
+CONFIG_SECURE_BOOT=n
+CONFIG_SECURE_FLASH_ENC_ENABLED=n

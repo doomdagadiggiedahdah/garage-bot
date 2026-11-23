@@ -1,0 +1,11 @@
+[package]
+name = "garagebot-kani"
+version = "0.1.0"
+edition = "2021"
+description = "GarageBot (MicroPython/ESP32) timing and decision logic, ported to Rust and verified with Kani"
+publish = false
+
+[dependencies]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }

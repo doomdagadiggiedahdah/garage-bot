@@ -1,0 +1,28 @@
+[package]
+name = "garagebot-shell"
+version = "2.0.0+ota"
+edition = "2021"
+description = "GarageBot ESP32 firmware: the hardware/network shell around the proven logic crate"
+publish = false
+
+[[bin]]
+name = "garagebot"
+path = "src/main.rs"
+harness = false
+
+[dependencies]
+garagebot-logic = { path = "../logic" }
+esp-idf-svc = "0.53"
+log = "0.4"
+anyhow = "1"
+
+[build-dependencies]
+embuild = "0.33"
+
+[profile.release]
+opt-level = "s"
+debug = true
+
+[profile.dev]
+debug = true
+opt-level = "z"

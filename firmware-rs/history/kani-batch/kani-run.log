@@ -1,0 +1,278 @@
+Kani Rust Verifier 0.68.0 (cargo plugin)
+CBMC 6.11.0
+   Compiling garagebot-kani v0.1.0 (~/garagebot-kani)
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: Found the following unsupported constructs:
+             - caller_location (1)
+             - foreign function (1)
+         
+         Verification will fail if one or more of these constructs is reachable.
+         See https://model-checking.github.io/kani/rust-feature-support.html for more details.
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.69s
+Thread 7: Checking harness proofs::a_ticks_diff_matches_micropython_formula...
+Thread 3: Checking harness proofs::g_poll_due_exact_within_max_interval...
+Thread 1: Checking harness proofs::d_handle_command_replies_table...
+Thread 2: Checking harness proofs::gap_door_open_minutes_truthful_up_to_30_days...
+Thread 0: Checking harness proofs::b_fires_iff_open_longer_than_timeout_ghost_clock...
+Thread 1: 
+VERIFICATION RESULT:
+ ** 0 of 14 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.06760586s
+
+Thread 5: Checking harness proofs::literal_stale_command_gets_no_reply...
+Thread 3: 
+VERIFICATION RESULT:
+ ** 0 of 6 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.095095575s
+
+Thread 6: Checking harness proofs::gap_close_timeout_after_any_pause...
+Thread 7: 
+VERIFICATION RESULT:
+ ** 0 of 10 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.1592377s
+
+Thread 1: Checking harness proofs::s_stale_command_age_never_panics...
+Thread 6: 
+VERIFICATION RESULT:
+ ** 1 of 60 failed
+Failed Checks: assertion failed: w.monitor(true, ticks_ms_at(t0 + d))
+ File: "src/proofs.rs", line 639, in proofs::gap_close_timeout_after_any_pause
+
+VERIFICATION:- FAILED
+Verification Time: 0.15400073s
+
+Thread 2: 
+VERIFICATION RESULT:
+ ** 2 of 11 failed
+Failed Checks: assertion failed: m >= 0
+ File: "src/proofs.rs", line 606, in proofs::gap_door_open_minutes_truthful_up_to_30_days
+Failed Checks: assertion failed: m as i64 == (d / 60_000) as i64
+ File: "src/proofs.rs", line 607, in proofs::gap_door_open_minutes_truthful_up_to_30_days
+
+VERIFICATION:- FAILED
+Verification Time: 0.24501948s
+
+Thread 3: Checking harness proofs::f_door_open_minutes_exact_within_max_interval...
+Thread 1: 
+VERIFICATION RESULT:
+ ** 0 of 7 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.09202951s
+
+Thread 7: Checking harness proofs::a_ticks_diff_exact_within_max_interval...
+Thread 2: Checking harness proofs::a_ticks_ms_at_is_real_mod_period...
+Thread 6: Checking harness proofs::gap_heartbeat_after_any_pause...
+Thread 5: 
+VERIFICATION RESULT:
+ ** 1 of 152 failed (1 unreachable)
+Failed Checks: assertion failed: a.replies() == Replies::Zero
+ File: "src/proofs.rs", line 753, in proofs::literal_stale_command_gets_no_reply
+
+VERIFICATION:- FAILED
+Verification Time: 0.4182304s
+
+Thread 2: 
+VERIFICATION RESULT:
+ ** 0 of 7 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.054695953s
+
+Thread 1: Checking harness proofs::s_stale_command_age_exact...
+Thread 2: Checking harness proofs::a_constants_match_micropython_esp32...
+Thread 6: 
+VERIFICATION RESULT:
+ ** 2 of 36 failed
+Failed Checks: assertion failed: u.step(ticks_ms_at(t0 + d))
+ File: "src/proofs.rs", line 627, in proofs::gap_heartbeat_after_any_pause
+Failed Checks: assertion failed: u.uptime_seconds == d / 1000
+ File: "src/proofs.rs", line 628, in proofs::gap_heartbeat_after_any_pause
+
+VERIFICATION:- FAILED
+Verification Time: 0.276796s
+
+Thread 5: Checking harness proofs::gap_stale_guarded_never_executed_any_clock_state...
+Thread 7: 
+VERIFICATION RESULT:
+ ** 0 of 8 failed
+
+ ** 1 of 1 cover properties satisfied
+
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.45513585s
+
+Thread 2: 
+VERIFICATION RESULT:
+ ** 0 of 14 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.09504944s
+
+Thread 1: 
+VERIFICATION RESULT:
+ ** 0 of 58 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.37460288s
+
+Thread 2: Checking harness proofs::c_uptime_new...
+Thread 6: Checking harness proofs::gap_poll_due_after_any_pause...
+Thread 2: 
+VERIFICATION RESULT:
+ ** 0 of 3 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.051346768s
+
+Thread 6: 
+VERIFICATION RESULT:
+ ** 1 of 4 failed
+Failed Checks: assertion failed: poll_due(ticks_ms_at(t0 + d), ticks_ms_at(t0))
+ File: "src/proofs.rs", line 617, in proofs::gap_poll_due_after_any_pause
+
+VERIFICATION:- FAILED
+Verification Time: 0.1189652s
+
+Thread 7: Checking harness proofs::c_uptime_tracks_real_time_step...
+Thread 0: 
+VERIFICATION RESULT:
+ ** 0 of 71 failed
+
+ ** 1 of 1 cover properties satisfied
+
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 1.0811895s
+
+Thread 5: 
+VERIFICATION RESULT:
+ ** 1 of 139 failed
+Failed Checks: assertion failed: !matches!(a, Action::Handled { .. })
+ File: "src/proofs.rs", line 737, in proofs::gap_stale_guarded_never_executed_any_clock_state
+
+VERIFICATION:- FAILED
+Verification Time: 0.33702654s
+
+Thread 2: Checking harness proofs::b_no_alert_once_door_seen_closed...
+Thread 1: Checking harness proofs::d_fresh_command_exactly_one_reply...
+Thread 6: Checking harness proofs::c_uptime_step_monotonic_no_overflow...
+Thread 2: 
+VERIFICATION RESULT:
+ ** 0 of 62 failed (1 unreachable)
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.1478292s
+
+Thread 0: Checking harness proofs::b_close_command_arms_only_when_open...
+Thread 0: 
+VERIFICATION RESULT:
+ ** 0 of 79 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.27137786s
+
+Thread 1: 
+VERIFICATION RESULT:
+ ** 0 of 231 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.45217246s
+
+Thread 2: Checking harness proofs::d_stale_guarded_never_executed_when_clock_synced...
+Thread 0: Checking harness proofs::b_monitor_step_exact...
+Thread 4: Checking harness proofs::d_poll_sequence_once_each_and_backlog_dropped...
+Thread 2: 
+VERIFICATION RESULT:
+ ** 0 of 140 failed (1 unreachable)
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.3609768s
+
+Thread 1: Checking harness proofs::d_process_update_exactly_one_decision...
+Thread 0: 
+VERIFICATION RESULT:
+ ** 0 of 104 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.40655866s
+
+Thread 5: Checking harness proofs::gap_command_sent_after_boot_never_dropped...
+Thread 1: 
+VERIFICATION RESULT:
+ ** 0 of 271 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 1.4608366s
+
+Thread 3: 
+VERIFICATION RESULT:
+ ** 0 of 12 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 5.2409253s
+
+Thread 5: 
+VERIFICATION RESULT:
+ ** 1 of 190 failed (2 unreachable)
+Failed Checks: assertion failed: !(offset > id && env.acts == 0)
+ File: "src/proofs.rs", line 714, in proofs::gap_command_sent_after_boot_never_dropped
+
+VERIFICATION:- FAILED
+Verification Time: 3.3327572s
+
+Thread 6: 
+VERIFICATION RESULT:
+ ** 0 of 74 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 6.5752106s
+
+Thread 7: 
+VERIFICATION RESULT:
+ ** 0 of 44 failed
+
+ ** 1 of 1 cover properties satisfied
+
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 11.32078s
+
+Thread 4: 
+VERIFICATION RESULT:
+ ** 0 of 281 failed (1 unreachable)
+
+ ** 1 of 1 cover properties satisfied
+
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 82.711136s
+
+Manual Harness Summary:
+Verification failed for - proofs::literal_stale_command_gets_no_reply
+Verification failed for - proofs::gap_stale_guarded_never_executed_any_clock_state
+Verification failed for - proofs::gap_command_sent_after_boot_never_dropped
+Verification failed for - proofs::gap_close_timeout_after_any_pause
+Verification failed for - proofs::gap_heartbeat_after_any_pause
+Verification failed for - proofs::gap_poll_due_after_any_pause
+Verification failed for - proofs::gap_door_open_minutes_truthful_up_to_30_days
+Complete - 20 successfully verified harnesses, 7 failures, 27 total.
+
+real	1m26.286s
+user	2m4.879s
+sys	0m3.661s

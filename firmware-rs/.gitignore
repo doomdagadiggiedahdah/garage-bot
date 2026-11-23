@@ -1,0 +1,10 @@
+target/
+.embuild/
+.proofcache.json
+__pycache__/
+.env
+# build outputs and release binaries (release assets live on GitHub Releases)
+shell/out/
+shell/release-*/
+# local-only: the build host for build_and_flash.sh (user@host)
+shell/.build-host
